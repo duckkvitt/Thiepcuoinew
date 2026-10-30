@@ -52,6 +52,7 @@ async function adminUpload(token, file) {
 
 export const invitationApi = {
   getInvitation: () => request(`/invitations/${slug}`),
+  getInvitee: (token) => request(`/invitations/${slug}/invitees/${encodeURIComponent(token)}`),
   getWishes: () => request(`/invitations/${slug}/wishes`),
   createWish: (payload) => request(`/invitations/${slug}/wishes`, { method: 'POST', body: JSON.stringify(payload) }),
   createRsvp: (payload) => request(`/invitations/${slug}/rsvps`, { method: 'POST', body: JSON.stringify(payload) })
@@ -62,6 +63,14 @@ export const adminApi = {
   getInvitation: (token) => adminRequest(`/invitations/${slug}`, { token }),
   updateInvitation: (token, payload) => adminRequest(`/invitations/${slug}`, { token, method: 'PUT', body: JSON.stringify(payload) }),
   getSubmissions: (token) => adminRequest(`/invitations/${slug}/submissions`, { token }),
+  getInvitees: (token) => adminRequest(`/invitations/${slug}/invitees`, { token }),
+  createInvitee: (token, name) => adminRequest(`/invitations/${slug}/invitees`, {
+    token, method: 'POST', body: JSON.stringify({ name })
+  }),
+  updateInvitee: (token, invitee) => adminRequest(`/invitations/${slug}/invitees/${invitee.id}`, {
+    token, method: 'PATCH', body: JSON.stringify({ name: invitee.name, isActive: invitee.isActive })
+  }),
+  deleteInvitee: (token, id) => adminRequest(`/invitations/${slug}/invitees/${id}`, { token, method: 'DELETE' }),
   uploadImage: (token, file) => adminUpload(token, file),
   updateWish: (token, id, isVisible) => adminRequest(`/invitations/${slug}/wishes/${id}`, {
     token, method: 'PATCH', body: JSON.stringify({ isVisible })

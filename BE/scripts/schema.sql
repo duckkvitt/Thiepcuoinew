@@ -82,6 +82,20 @@ CREATE TABLE IF NOT EXISTS wedding_locations (
   UNIQUE KEY uq_invitation_location_type (invitation_id, location_type)
 );
 
+CREATE TABLE IF NOT EXISTS invitees (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  invitation_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  token CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  view_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_opened_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_invitees_invitation FOREIGN KEY (invitation_id) REFERENCES invitations(id) ON DELETE CASCADE,
+  INDEX idx_invitees_invitation_active (invitation_id, is_active)
+);
+
 CREATE TABLE IF NOT EXISTS wishes (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   invitation_id BIGINT UNSIGNED NOT NULL,

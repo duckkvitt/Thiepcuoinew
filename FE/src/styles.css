@@ -52,7 +52,10 @@ main {
 .entry-ornament { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; color: #c5a05e; font-size: 6px; }
 .entry-ornament span { width: 32px; height: 1px; background: currentColor; opacity: .75; }
 .entry-card time { position: relative; z-index: 2; font: 18px Georgia, serif; }
-.entry-invite { position: relative; z-index: 2; margin: 24px 0 17px; font: 18px 'Cormorant Garamond', Georgia, serif; }
+.entry-invite { position: relative; z-index: 2; display: grid; justify-items: center; gap: 3px; margin: 24px 0 17px; font: 18px 'Cormorant Garamond', Georgia, serif; }
+.entry-invite span { color: rgba(104,21,29,.72); }
+.entry-invite strong { max-width: min(330px, 68vw); color: #68151d; text-align: center; overflow-wrap: anywhere; font: 600 24px/1.15 'Cormorant Garamond', Georgia, serif; }
+.entry-invite.personalized { margin-top: 18px; }
 .entry-card button { position: relative; z-index: 3; min-width: 142px; min-height: 49px; padding: 0 25px; color: #fff8ed; background: linear-gradient(135deg, #6e1720, #4b0a10); border: 1px solid rgba(104,21,29,.4); border-radius: 999px; box-shadow: 0 12px 24px rgba(74,10,15,.26); cursor: pointer; overflow: hidden; font: 600 15px Georgia, serif; transition: transform .25s ease, box-shadow .25s ease; }
 .entry-card button:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 28px rgba(74,10,15,.33); }
 .entry-card button > span { position: absolute; inset: 0 auto 0 -55%; width: 42%; transform: skewX(-25deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent); animation: entry-shine 2.7s 1.2s ease-in-out infinite; }

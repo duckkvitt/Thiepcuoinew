@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Eye, EyeOff,
-  Expand, Gift, Image, LayoutDashboard, LocateFixed, LogOut, MapPin,
+  ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Copy, Eye, EyeOff,
+  Expand, Gift, Image, LayoutDashboard, Link2, LocateFixed, LogOut, MapPin,
   MessageSquare, MonitorSmartphone, Plus, Save, Settings, Shrink,
-  Trash2, UploadCloud, Users, X
+  Trash2, UploadCloud, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
 import { formatVietnameseLunarDate } from './lunarDate.js';
@@ -29,7 +29,8 @@ const sections = [
   ['gallery', <Image size={18} />, 'Album ảnh'],
   ['schedule', <CalendarDays size={18} />, 'Lịch trình'],
   ['gift', <Gift size={18} />, 'Quà mừng'],
-  ['submissions', <MessageSquare size={18} />, 'Khách mời']
+  ['invitees', <Link2 size={18} />, 'Link khách mời'],
+  ['submissions', <MessageSquare size={18} />, 'Phản hồi']
 ];
 
 function Login({ onLogin }) {
@@ -89,6 +90,10 @@ export default function AdminApp() {
   const [token, setToken] = useState(() => sessionStorage.getItem(tokenKey) || '');
   const [data, setData] = useState(null);
   const [submissions, setSubmissions] = useState({ wishes: [], rsvps: [] });
+  const [invitees, setInvitees] = useState([]);
+  const [newInviteeName, setNewInviteeName] = useState('');
+  const [inviteeBusy, setInviteeBusy] = useState('');
+  const [copiedInvitee, setCopiedInvitee] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState('');
@@ -102,13 +107,18 @@ export default function AdminApp() {
     sessionStorage.removeItem(tokenKey);
     setToken('');
     setData(null);
+    setInvitees([]);
   };
 
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    Promise.all([adminApi.getInvitation(token), adminApi.getSubmissions(token)])
-      .then(([invitation, response]) => { setData(normalizeInvitationGift(invitation)); setSubmissions(response); })
+    Promise.all([adminApi.getInvitation(token), adminApi.getSubmissions(token), adminApi.getInvitees(token)])
+      .then(([invitation, response, inviteeList]) => {
+        setData(normalizeInvitationGift(invitation));
+        setSubmissions(response);
+        setInvitees(inviteeList);
+      })
       .catch((error) => { if (error.status === 401) logout(); else setNotice(error.message); })
       .finally(() => setLoading(false));
   }, [token]);
@@ -239,6 +249,75 @@ export default function AdminApp() {
       setSubmissions((current) => ({ ...current, wishes: current.wishes.filter((item) => item.id !== wish.id) }));
       setNotice('Đã xóa lời chúc.');
     } catch (error) { setNotice(error.message); }
+  };
+
+  const inviteeLink = (inviteeToken) => {
+    const url = new URL(import.meta.env.BASE_URL, window.location.origin);
+    url.searchParams.set('invite', inviteeToken);
+    return url.toString();
+  };
+
+  const createInvitee = async (event) => {
+    event.preventDefault();
+    const name = newInviteeName.trim();
+    if (!name) return;
+    setInviteeBusy('create'); setNotice('');
+    try {
+      const invitee = await adminApi.createInvitee(token, name);
+      setInvitees((current) => [invitee, ...current]);
+      setNewInviteeName('');
+      setNotice(`Đã tạo link mời cho ${invitee.name}.`);
+    } catch (error) {
+      if (error.status === 401) logout();
+      else setNotice(error.message);
+    } finally {
+      setInviteeBusy('');
+    }
+  };
+
+  const editInviteeName = (id, name) => setInvitees((current) => (
+    current.map((item) => item.id === id ? { ...item, name } : item)
+  ));
+
+  const saveInvitee = async (invitee, changes = {}) => {
+    const nextInvitee = { ...invitee, ...changes };
+    setInviteeBusy(invitee.id); setNotice('');
+    try {
+      const response = await adminApi.updateInvitee(token, nextInvitee);
+      setInvitees((current) => current.map((item) => item.id === invitee.id ? response.invitee : item));
+      setNotice(response.message);
+    } catch (error) {
+      if (error.status === 401) logout();
+      else setNotice(error.message);
+    } finally {
+      setInviteeBusy('');
+    }
+  };
+
+  const copyInviteeLink = async (invitee) => {
+    try {
+      await navigator.clipboard.writeText(inviteeLink(invitee.token));
+      setCopiedInvitee(invitee.id);
+      setNotice(`Đã sao chép link mời của ${invitee.name}.`);
+      window.setTimeout(() => setCopiedInvitee(null), 1800);
+    } catch {
+      setNotice('Không thể sao chép tự động. Hãy chọn và sao chép đường link thủ công.');
+    }
+  };
+
+  const deleteInvitee = async (invitee) => {
+    if (!window.confirm(`Xóa link mời của ${invitee.name}? Link này sẽ không dùng được nữa.`)) return;
+    setInviteeBusy(invitee.id); setNotice('');
+    try {
+      const response = await adminApi.deleteInvitee(token, invitee.id);
+      setInvitees((current) => current.filter((item) => item.id !== invitee.id));
+      setNotice(response.message);
+    } catch (error) {
+      if (error.status === 401) logout();
+      else setNotice(error.message);
+    } finally {
+      setInviteeBusy('');
+    }
   };
 
   const stats = useMemo(() => {
@@ -388,6 +467,25 @@ export default function AdminApp() {
             </div>
           </article>;
         })}</div>
+      </Panel>
+
+      <Panel id="invitees" eyebrow="Cá nhân hóa lời mời" title="Link riêng cho từng khách mời">
+        <p className="admin-panel-description">Nhập tên khách để tạo đường link riêng. Khi mở link, khách sẽ thấy tên của mình trên màn hình mở thiệp.</p>
+        <form className="admin-invitee-create" onSubmit={createInvitee}>
+          <Field label="Tên người được mời"><input value={newInviteeName} onChange={(event) => setNewInviteeName(event.target.value)} placeholder="Ví dụ: Anh Nguyễn Văn An và gia đình" maxLength={150} /></Field>
+          <button type="submit" className="admin-primary" disabled={inviteeBusy === 'create' || !newInviteeName.trim()}><UserPlus size={17} />{inviteeBusy === 'create' ? 'Đang tạo...' : 'Tạo link mời'}</button>
+        </form>
+        <div className="admin-invitee-summary"><strong>{invitees.length}</strong><span>link khách mời đã tạo</span></div>
+        <div className="admin-table-wrap admin-invitee-table"><table>
+          <thead><tr><th>Tên hiển thị</th><th>Đường link riêng</th><th>Lượt mở</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+          <tbody>{invitees.map((invitee) => <tr key={invitee.id}>
+            <td><input className="admin-table-input" value={invitee.name} onChange={(event) => editInviteeName(invitee.id, event.target.value)} maxLength={150} /></td>
+            <td><div className="admin-link-field"><input value={inviteeLink(invitee.token)} readOnly onFocus={(event) => event.target.select()} /><button type="button" onClick={() => copyInviteeLink(invitee)} aria-label={`Sao chép link của ${invitee.name}`}>{copiedInvitee === invitee.id ? <Check size={15} /> : <Copy size={15} />}</button></div></td>
+            <td><strong>{invitee.viewCount || 0}</strong><small>{invitee.lastOpenedAt ? `Lần cuối: ${new Date(invitee.lastOpenedAt).toLocaleString('vi-VN')}` : 'Chưa mở link'}</small></td>
+            <td><label className="admin-invitee-status"><input type="checkbox" checked={invitee.isActive} onChange={(event) => saveInvitee(invitee, { isActive: event.target.checked })} disabled={inviteeBusy === invitee.id} /><span />{invitee.isActive ? 'Đang hoạt động' : 'Đã tắt'}</label></td>
+            <td><div className="admin-invitee-actions"><button type="button" onClick={() => saveInvitee(invitee)} disabled={inviteeBusy === invitee.id || !invitee.name.trim()}><Save size={15} /> Lưu tên</button><button type="button" className="danger" onClick={() => deleteInvitee(invitee)} disabled={inviteeBusy === invitee.id}><Trash2 size={15} /> Xóa</button></div></td>
+          </tr>)}</tbody>
+        </table>{!invitees.length && <p className="admin-empty">Chưa có link khách mời. Hãy nhập tên để tạo link đầu tiên.</p>}</div>
       </Panel>
 
       <Panel id="submissions" eyebrow="Phản hồi" title="Khách mời và lời chúc" previewSection="guestbook" onPreview={showPreviewSection}>

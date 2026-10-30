@@ -304,6 +304,83 @@ app.get('/api/admin/invitations/:slug/submissions', requireAdmin, async (req, re
   }
 });
 
+app.get('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res, next) => {
+  try {
+    const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
+    if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
+    const [rows] = await pool.query(
+      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+              last_opened_at AS lastOpenedAt, created_at AS createdAt
+       FROM invitees WHERE invitation_id = ? ORDER BY created_at DESC, id DESC`,
+      [invitation.id]
+    );
+    res.json(rows.map((item) => ({ ...item, isActive: Boolean(item.isActive) })));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res, next) => {
+  try {
+    const name = clean(req.body?.name, 150);
+    if (!name) return res.status(400).json({ message: 'Vui lòng nhập tên người được mời.' });
+    const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
+    if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
+    const token = randomUUID().replaceAll('-', '');
+    const [result] = await pool.query(
+      'INSERT INTO invitees (invitation_id, name, token) VALUES (?, ?, ?)',
+      [invitation.id, name, token]
+    );
+    const [[invitee]] = await pool.query(
+      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+              last_opened_at AS lastOpenedAt, created_at AS createdAt
+       FROM invitees WHERE id = ?`,
+      [result.insertId]
+    );
+    res.status(201).json({ ...invitee, isActive: Boolean(invitee.isActive) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch('/api/admin/invitations/:slug/invitees/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const name = clean(req.body?.name, 150);
+    if (!name) return res.status(400).json({ message: 'Tên người được mời không được để trống.' });
+    const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
+    if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
+    const [result] = await pool.query(
+      'UPDATE invitees SET name = ?, is_active = ? WHERE id = ? AND invitation_id = ?',
+      [name, req.body?.isActive === false ? 0 : 1, Number(req.params.id), invitation.id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy khách mời.' });
+    const [[invitee]] = await pool.query(
+      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+              last_opened_at AS lastOpenedAt, created_at AS createdAt
+       FROM invitees WHERE id = ?`,
+      [Number(req.params.id)]
+    );
+    res.json({ message: 'Đã cập nhật khách mời.', invitee: { ...invitee, isActive: Boolean(invitee.isActive) } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete('/api/admin/invitations/:slug/invitees/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
+    if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
+    const [result] = await pool.query(
+      'DELETE FROM invitees WHERE id = ? AND invitation_id = ?',
+      [Number(req.params.id), invitation.id]
+    );
+    if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy khách mời.' });
+    res.json({ message: 'Đã xóa link mời.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.patch('/api/admin/invitations/:slug/wishes/:id', requireAdmin, async (req, res, next) => {
   try {
     const { isVisible } = wishVisibilitySchema.parse(req.body);
@@ -337,6 +414,30 @@ app.get('/api/invitations/:slug', async (req, res, next) => {
     const invitation = await getInvitationBySlug(req.params.slug);
     if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
     res.json(invitation);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/invitations/:slug/invitees/:token', async (req, res, next) => {
+  try {
+    const token = clean(req.params.token, 64);
+    if (!/^[a-f0-9]{32}$/i.test(token)) return res.status(404).json({ message: 'Link mời không hợp lệ.' });
+    const [[invitee]] = await pool.query(
+      `SELECT guests.id, guests.name
+       FROM invitees guests
+       JOIN invitations invitation ON invitation.id = guests.invitation_id
+       WHERE invitation.slug = ? AND invitation.is_published = TRUE
+         AND guests.token = ? AND guests.is_active = TRUE
+       LIMIT 1`,
+      [req.params.slug, token]
+    );
+    if (!invitee) return res.status(404).json({ message: 'Link mời không tồn tại hoặc đã bị tắt.' });
+    await pool.query(
+      'UPDATE invitees SET view_count = view_count + 1, last_opened_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [invitee.id]
+    );
+    res.json({ name: invitee.name });
   } catch (error) {
     next(error);
   }

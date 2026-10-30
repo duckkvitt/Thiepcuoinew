@@ -10,6 +10,7 @@ import './styles.css';
 const pad = (value) => String(value).padStart(2, '0');
 const toLocalDate = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00`);
 const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'admin';
+const inviteToken = new URLSearchParams(window.location.search).get('invite') || '';
 const ENTRY_OPEN_DURATION_MS = 1850;
 const getHeartFallSeconds = (randomValue) => Number((50 + 20 * randomValue).toFixed(1));
 const formatWeddingDate = (value) => {
@@ -17,7 +18,7 @@ const formatWeddingDate = (value) => {
   return `${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
 };
 
-function EntryGate({ data, onOpened }) {
+function EntryGate({ data, inviteeName, onOpened }) {
   const [opening, setOpening] = useState(false);
   const date = toLocalDate(data.weddingDate);
   const petals = [
@@ -57,7 +58,7 @@ function EntryGate({ data, onOpened }) {
       <div className="entry-names"><strong>{data.groomName}</strong><i>&amp;</i><strong>{data.brideName}</strong></div>
       <div className="entry-ornament"><span />◆<span /></div>
       <time dateTime={String(data.weddingDate).slice(0, 10)}>{formatWeddingDate(data.weddingDate)}</time>
-      <p className="entry-invite">Thân Mời</p>
+      <p className={`entry-invite${inviteeName ? ' personalized' : ''}`}><span>Thân Mời</span>{inviteeName && <strong>{inviteeName}</strong>}</p>
       <button type="button" onClick={openInvitation} disabled={opening} autoFocus>{opening ? 'Đang mở...' : 'Mở thiệp'}<span aria-hidden="true" /></button>
       <small>{pad(date.getDate())} · {pad(date.getMonth() + 1)} · {date.getFullYear()}</small>
     </section>
@@ -298,13 +299,13 @@ function DressAndTimeline({ data }) {
   </section>;
 }
 
-function Guestbook({ wishes, onSubmit }) {
-  const [form, setForm] = useState({ guestName: '', message: '' });
+function Guestbook({ wishes, onSubmit, initialGuestName = '' }) {
+  const [form, setForm] = useState({ guestName: initialGuestName, message: '' });
   const [state, setState] = useState({ loading: false, message: '' });
   const submit = async (event) => {
     event.preventDefault(); setState({ loading: true, message: '' });
     try {
-      await onSubmit(form); setForm({ guestName: '', message: '' }); setState({ loading: false, message: 'Lời chúc đã được gửi. Cảm ơn bạn!' });
+      await onSubmit(form); setForm({ guestName: initialGuestName, message: '' }); setState({ loading: false, message: 'Lời chúc đã được gửi. Cảm ơn bạn!' });
     } catch (error) { setState({ loading: false, message: error.message }); }
   };
   return <section id="guestbook" className="section guestbook-section">
@@ -351,8 +352,8 @@ function Modal({ title, onClose, children, className = '' }) {
   </div>;
 }
 
-function RsvpModal({ onClose, onSubmit }) {
-  const [form, setForm] = useState({ guestName: '', phone: '', attendance: 'attending', guestCount: 1, note: '' });
+function RsvpModal({ onClose, onSubmit, initialGuestName = '' }) {
+  const [form, setForm] = useState({ guestName: initialGuestName, phone: '', attendance: 'attending', guestCount: 1, note: '' });
   const [status, setStatus] = useState({ loading: false, message: '', done: false });
   const submit = async (event) => {
     event.preventDefault(); setStatus({ loading: true, message: '', done: false });
@@ -401,6 +402,7 @@ function GiftModal({ gift, onClose }) {
 export default function App() {
   const [data, setData] = useState(null);
   const [wishes, setWishes] = useState([]);
+  const [invitee, setInvitee] = useState(null);
   const [modal, setModal] = useState(null);
   const [offline, setOffline] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -421,8 +423,15 @@ export default function App() {
       window.parent.postMessage({ type: 'wedding-preview-ready' }, window.location.origin);
       return () => window.removeEventListener('message', receivePreview);
     }
-    Promise.all([invitationApi.getInvitation(), invitationApi.getWishes()])
-      .then(([invitation, wishList]) => { setData(invitation); setWishes(wishList); })
+    const inviteeRequest = inviteToken
+      ? invitationApi.getInvitee(inviteToken).catch(() => null)
+      : Promise.resolve(null);
+    Promise.all([invitationApi.getInvitation(), invitationApi.getWishes(), inviteeRequest])
+      .then(([invitation, wishList, invitedGuest]) => {
+        setData(invitation);
+        setWishes(wishList);
+        setInvitee(invitedGuest);
+      })
       .catch((error) => { if (error.status === 404) setUnavailable(true); else setOffline(true); });
   }, []);
 
@@ -444,7 +453,7 @@ export default function App() {
   </main>;
 
   return <>
-    {!hasEntered && <EntryGate data={data} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+    {!hasEntered && <EntryGate data={data} inviteeName={invitee?.name} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
     <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
     <Hero data={data} />
@@ -453,9 +462,9 @@ export default function App() {
     <Reception data={data} onRsvp={() => setModal('rsvp')} />
     <Venue data={data} />
     <DressAndTimeline data={data} />
-    <Guestbook wishes={wishes} onSubmit={createWish} />
+    <Guestbook wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
     <GiftSection onOpen={() => setModal('gift')} />
-    {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} />}
+    {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} initialGuestName={invitee?.name} />}
     {modal === 'gift' && <GiftModal gift={data.gift} onClose={() => setModal(null)} />}
     </main>
   </>;
