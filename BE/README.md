@@ -34,6 +34,7 @@ Trang quản trị cho phép:
 - Sửa riêng nhà chú rể và nhà cô dâu; mỗi nơi chỉ cần một URL Google Maps dùng chung cho bản đồ nhúng và nút chỉ đường (hỗ trợ link `maps.app.goo.gl`).
 - Thêm, xóa, sắp xếp ảnh album và lịch trình ngày cưới.
 - Tải trực tiếp ảnh JPG, PNG, WEBP hoặc GIF (tối đa 8 MB) cho ảnh bìa và album; file được lưu trong `BE/uploads`.
+- Tải nhạc nền MP3, M4A, WAV hoặc OGG (tối đa 25 MB), chỉnh âm lượng và tự phát sau khi khách bấm “Mở thiệp”.
 - Chỉnh màu dress code, hai tài khoản mừng cưới riêng cho chú rể/cô dâu và upload ảnh QR cho từng tài khoản.
 - Xem RSVP, tổng số khách và ẩn/hiện/xóa lời chúc.
 

@@ -59,6 +59,10 @@ try {
   await ensureColumn('invitations', 'bride_role', "VARCHAR(100) NOT NULL DEFAULT 'ÚT NỮ'");
   await ensureColumn('invitations', 'ceremony_intro', "VARCHAR(255) NOT NULL DEFAULT 'LỄ THÀNH HÔN ĐƯỢC CỬ HÀNH TẠI'");
   await ensureColumn('invitations', 'ceremony_venue', "VARCHAR(200) NOT NULL DEFAULT 'TƯ GIA'");
+  await ensureColumn('invitations', 'music_url', "VARCHAR(500) NOT NULL DEFAULT ''");
+  await ensureColumn('invitations', 'music_title', "VARCHAR(150) NOT NULL DEFAULT ''");
+  await ensureColumn('invitations', 'music_enabled', 'BOOLEAN NOT NULL DEFAULT FALSE');
+  await ensureColumn('invitations', 'music_volume', 'DECIMAL(3,2) NOT NULL DEFAULT 0.35');
 
   const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
   const adminPassword = String(process.env.ADMIN_PASSWORD || '');

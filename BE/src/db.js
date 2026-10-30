@@ -101,6 +101,12 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
     heroImage: invitation.hero_image,
     dressColors: parseJson(invitation.dress_colors, []),
     gift: normalizeGift(invitation.gift_details),
+    music: {
+      url: invitation.music_url || '',
+      title: invitation.music_title || '',
+      enabled: Boolean(invitation.music_enabled),
+      volume: Number(invitation.music_volume ?? 0.35)
+    },
     isPublished: Boolean(invitation.is_published),
     families,
     gallery,

@@ -123,6 +123,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-qr-editor > div:last-child { display: grid; gap: 8px; }
 .admin-remove-qr { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 10px; color: #9d2630; background: #fff; border: 1px solid #e5cdd0; border-radius: 8px; cursor: pointer; font-size: 9px; font-weight: 700; }
 
+.admin-music-form { margin-top: 24px; }
+.admin-volume-control { display: grid; grid-template-columns: 1fr 48px; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; background: #fff; border: 1px solid #ded3c7; border-radius: 8px; }
+.admin-volume-control input { min-height: 0; padding: 0; border: 0; box-shadow: none; accent-color: var(--admin-wine); }
+.admin-volume-control strong { color: var(--admin-wine); text-align: right; font-size: 11px; }
+.admin-music-preview { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-top: 20px; padding: 15px; background: #faf8f5; border: 1px solid var(--admin-line); border-radius: 12px; }
+.admin-music-preview > span { display: grid; place-items: center; width: 48px; height: 48px; color: #fff; background: var(--admin-wine); border-radius: 50%; }
+.admin-music-preview > div { display: grid; gap: 7px; min-width: 0; }
+.admin-music-preview strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 18px 'Cormorant Garamond', serif; }
+.admin-music-preview audio { width: min(100%, 460px); height: 34px; }
+.admin-music-preview > button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; color: #a22630; background: #fff; border: 1px solid #e5cdd0; border-radius: 8px; cursor: pointer; font-size: 9px; font-weight: 700; }
+.admin-music-empty { display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 88px; margin-top: 20px; color: #9a8984; background: #faf8f5; border: 1px dashed #d9cbc0; border-radius: 12px; font-size: 11px; }
+
 .admin-panel-description { max-width: 720px; margin: -5px 0 20px; color: #846f6c; font: 12px/1.7 Georgia, serif; }
 .admin-invitee-create { display: grid; grid-template-columns: minmax(260px, 1fr) auto; align-items: end; gap: 12px; padding: 18px; background: #faf8f5; border: 1px solid var(--admin-line); border-radius: 12px; }
 .admin-invitee-create .admin-primary { min-height: 44px; }
@@ -223,6 +235,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-image-row .admin-row-actions { grid-column: 2; justify-self: end; }
   .admin-image-control { grid-template-columns: 1fr; }
   .admin-gift-accounts { grid-template-columns: 1fr; }
+  .admin-music-preview { grid-template-columns: 42px minmax(0, 1fr); }
+  .admin-music-preview > span { width: 42px; height: 42px; }
+  .admin-music-preview > button { grid-column: 2; justify-self: start; }
   .admin-invitee-create { grid-template-columns: 1fr; }
   .admin-invitee-create .admin-primary { width: 100%; }
   .admin-qr-editor { grid-template-columns: 120px 1fr; }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Gift, Heart,
-  Flower2, MapPin, Navigation, QrCode, Send, Sparkles, X
+  Flower2, MapPin, Navigation, Pause, Play, QrCode, Send, Sparkles, X
 } from 'lucide-react';
 import { invitationApi } from './api.js';
 import { googleMapsEmbedUrl } from './mapUtils.js';
@@ -18,7 +18,7 @@ const formatWeddingDate = (value) => {
   return `${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
 };
 
-function EntryGate({ data, inviteeName, onOpened }) {
+function EntryGate({ data, inviteeName, onOpening, onOpened }) {
   const [opening, setOpening] = useState(false);
   const date = toLocalDate(data.weddingDate);
   const petals = [
@@ -41,6 +41,7 @@ function EntryGate({ data, inviteeName, onOpened }) {
   const openInvitation = () => {
     if (opening) return;
     setOpening(true);
+    onOpening?.();
     window.setTimeout(onOpened, ENTRY_OPEN_DURATION_MS);
   };
 
@@ -93,7 +94,9 @@ function Hero({ data }) {
       <p>{data.groomName}</p><span>&amp;</span><p>{data.brideName}</p>
     </div>
     <p className="hero-date">{pad(date.getDate())} · {pad(date.getMonth() + 1)} · {date.getFullYear()}</p>
-    <a className="scroll-cue" href="#invitation" aria-label="Xem thông tin lễ cưới"><span /></a>
+    <a className="scroll-cue" href="#invitation" aria-label="Xem thông tin lễ cưới">
+      <Heart size={23} fill="currentColor" aria-hidden="true" />
+    </a>
   </header>;
 }
 
@@ -180,7 +183,11 @@ function Gallery({ data }) {
     <SectionTitle title="Album ảnh" />
     <div
       className={`gallery-stage${isDragging ? ' is-dragging' : ''}`}
-      style={{ '--drag-x': `${dragX}px`, '--drag-tilt': `${dragX / 9}deg` }}
+      style={{
+        '--drag-x': `${dragX}px`,
+        '--drag-tilt': `${dragX / 14}deg`,
+        '--side-drag-x': `${dragX * 0.22}px`
+      }}
       onPointerDown={startSwipe}
       onPointerMove={updateSwipe}
       onPointerUp={finishSwipe}
@@ -195,11 +202,14 @@ function Gallery({ data }) {
     >
       <button onClick={() => move(-1)} aria-label="Ảnh trước"><ChevronLeft /></button>
       {images.map((image, index) => {
-        const offset = (index - active + images.length) % images.length;
-        let position = 'hidden';
+        let offset = index - active;
+        const halfway = images.length / 2;
+        if (offset > halfway) offset -= images.length;
+        if (offset < -halfway) offset += images.length;
+        let position = offset < 0 ? 'hidden-left' : 'hidden-right';
         if (offset === 0) position = 'active';
         else if (offset === 1) position = 'next';
-        else if (offset === images.length - 1) position = 'prev';
+        else if (offset === -1) position = 'prev';
         return <img key={image.id} className={`gallery-image ${position}`} src={image.image_url} alt={image.alt_text} draggable="false" />;
       })}
       <button onClick={() => move(1)} aria-label="Ảnh kế"><ChevronRight /></button>
@@ -407,6 +417,8 @@ export default function App() {
   const [offline, setOffline] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [hasEntered, setHasEntered] = useState(isPreviewMode);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -440,6 +452,27 @@ export default function App() {
     setWishes((current) => [wish, ...current]);
   };
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !data?.music) return;
+    audio.volume = Math.min(1, Math.max(0, Number(data.music.volume ?? 0.35)));
+    if (!data.music.enabled) audio.pause();
+  }, [data?.music]);
+
+  const startMusic = () => {
+    const audio = audioRef.current;
+    if (!audio || !data?.music?.enabled || !data.music.url) return;
+    audio.volume = Math.min(1, Math.max(0, Number(data.music.volume ?? 0.35)));
+    audio.play().catch(() => setMusicPlaying(false));
+  };
+
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) audio.play().catch(() => setMusicPlaying(false));
+    else audio.pause();
+  };
+
   if (unavailable) return <main className="invitation-unavailable">
     <div><span>THIỆP CƯỚI</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
   </main>;
@@ -453,7 +486,17 @@ export default function App() {
   </main>;
 
   return <>
-    {!hasEntered && <EntryGate data={data} inviteeName={invitee?.name} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+    {data.music?.url && <audio ref={audioRef} src={data.music.url} loop preload="metadata" onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} />}
+    {!hasEntered && <EntryGate data={data} inviteeName={invitee?.name} onOpening={startMusic} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+    {hasEntered && data.music?.enabled && data.music?.url && <button
+      type="button"
+      className={`music-control${musicPlaying ? ' playing' : ''}`}
+      onClick={toggleMusic}
+      aria-label={musicPlaying ? 'Tạm dừng nhạc nền' : 'Phát nhạc nền'}
+      title={musicPlaying ? 'Tạm dừng nhạc' : 'Phát nhạc'}
+    >
+      {musicPlaying ? <Pause size={17} /> : <Play size={17} />}
+    </button>}
     <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
     <Hero data={data} />

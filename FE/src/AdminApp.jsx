@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Copy, Eye, EyeOff,
   Expand, Gift, Image, LayoutDashboard, Link2, LocateFixed, LogOut, MapPin,
-  MessageSquare, MonitorSmartphone, Plus, Save, Settings, Shrink,
+  MessageSquare, MonitorSmartphone, Music2, Plus, Save, Settings, Shrink,
   Trash2, UploadCloud, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
@@ -15,6 +15,7 @@ const normalizeInvitationGift = (invitation) => {
   const account = (source, label) => ({ label, bankName: '', accountName: '', accountNumber: '', message: '', qrImage: '', ...(source || {}) });
   return {
     ...invitation,
+    music: { url: '', title: '', enabled: false, volume: 0.35, ...(invitation.music || {}) },
     gift: {
       groom: account(gift.groom || gift, 'Chú rể'),
       bride: account(gift.bride, 'Cô dâu')
@@ -29,6 +30,7 @@ const sections = [
   ['gallery', <Image size={18} />, 'Album ảnh'],
   ['schedule', <CalendarDays size={18} />, 'Lịch trình'],
   ['gift', <Gift size={18} />, 'Quà mừng'],
+  ['music', <Music2 size={18} />, 'Nhạc nền'],
   ['invitees', <Link2 size={18} />, 'Link khách mời'],
   ['submissions', <MessageSquare size={18} />, 'Phản hồi']
 ];
@@ -182,6 +184,10 @@ export default function AdminApp() {
     ...current,
     gift: { ...current.gift, [owner]: { ...current.gift[owner], [key]: value } }
   }));
+  const updateMusic = (key, value) => setData((current) => ({
+    ...current,
+    music: { ...current.music, [key]: value }
+  }));
   const updateVenueLocation = (location, key, value) => setData((current) => ({
     ...current,
     venue: { ...current.venue, [location]: { ...current.venue[location], [key]: value } }
@@ -224,6 +230,32 @@ export default function AdminApp() {
       const response = await adminApi.uploadImage(token, file);
       applyImage(response.imageUrl);
       setNotice('Đã tải ảnh lên. Hãy nhấn “Lưu thay đổi” để áp dụng vào thiệp.');
+    } catch (error) {
+      if (error.status === 401) logout();
+      else setNotice(error.message);
+    } finally {
+      setUploading('');
+    }
+  };
+
+  const uploadAudio = async (file) => {
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setNotice('Tệp nhạc không được lớn hơn 25 MB.');
+      return;
+    }
+    setUploading('music'); setNotice('');
+    try {
+      const response = await adminApi.uploadAudio(token, file);
+      setData((current) => ({
+        ...current,
+        music: {
+          ...current.music,
+          url: response.audioUrl,
+          title: current.music.title || file.name.replace(/\.[^.]+$/, '')
+        }
+      }));
+      setNotice('Đã tải nhạc lên. Hãy nhấn “Lưu thay đổi” để áp dụng vào thiệp.');
     } catch (error) {
       if (error.status === 401) logout();
       else setNotice(error.message);
@@ -467,6 +499,23 @@ export default function AdminApp() {
             </div>
           </article>;
         })}</div>
+      </Panel>
+
+      <Panel id="music" eyebrow="Không gian cảm xúc" title="Nhạc nền cho thiệp">
+        <label className="publish-toggle"><input type="checkbox" checked={data.music.enabled} onChange={(event) => updateMusic('enabled', event.target.checked)} /><span />
+          <div><strong>Bật nhạc nền</strong><small>Nhạc bắt đầu sau khi khách bấm “Mở thiệp” và tự động phát lặp.</small></div>
+        </label>
+        <div className="admin-form-grid admin-music-form">
+          <Field label="Tên bài nhạc"><input value={data.music.title || ''} onChange={(event) => updateMusic('title', event.target.value)} placeholder="Ví dụ: Bản nhạc của chúng mình" maxLength={150} /></Field>
+          <Field label="Âm lượng"><div className="admin-volume-control"><input type="range" min="0" max="100" step="1" value={Math.round(Number(data.music.volume || 0) * 100)} onChange={(event) => updateMusic('volume', Number(event.target.value) / 100)} /><strong>{Math.round(Number(data.music.volume || 0) * 100)}%</strong></div></Field>
+          <Field label="URL hoặc tệp nhạc" wide><div className="admin-image-control">
+            <input value={data.music.url || ''} onChange={(event) => updateMusic('url', event.target.value)} placeholder="https://.../bai-hat.mp3" />
+            <label className={`admin-upload${uploading === 'music' ? ' loading' : ''}`}><UploadCloud size={17} />{uploading === 'music' ? 'Đang tải nhạc...' : 'Chọn nhạc từ máy'}
+              <input type="file" accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/ogg,.mp3,.m4a,.wav,.ogg" disabled={Boolean(uploading)} onChange={(event) => { uploadAudio(event.target.files?.[0]); event.target.value = ''; }} />
+            </label>
+          </div><small className="admin-field-hint">Hỗ trợ MP3, M4A, WAV, OGG; tối đa 25 MB. Nên dùng MP3 dung lượng nhỏ để thiệp tải nhanh.</small></Field>
+        </div>
+        {data.music.url ? <div className="admin-music-preview"><span><Music2 size={22} /></span><div><strong>{data.music.title || 'Nhạc nền thiệp cưới'}</strong><audio controls preload="metadata" src={data.music.url} /></div><button type="button" onClick={() => updateMusic('url', '')}><Trash2 size={15} /> Xóa nhạc</button></div> : <div className="admin-music-empty"><Music2 size={26} /><span>Chưa chọn nhạc nền</span></div>}
       </Panel>
 
       <Panel id="invitees" eyebrow="Cá nhân hóa lời mời" title="Link riêng cho từng khách mời">

@@ -65,6 +65,15 @@ const imageTypes = {
   'image/webp': { extension: 'webp', valid: (buffer) => buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP' },
   'image/gif': { extension: 'gif', valid: (buffer) => ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString()) }
 };
+const audioTypes = {
+  'audio/mpeg': { extension: 'mp3', valid: (buffer) => buffer.subarray(0, 3).toString() === 'ID3' || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) },
+  'audio/mp3': { extension: 'mp3', valid: (buffer) => buffer.subarray(0, 3).toString() === 'ID3' || (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) },
+  'audio/mp4': { extension: 'm4a', valid: (buffer) => buffer.subarray(4, 8).toString() === 'ftyp' },
+  'audio/x-m4a': { extension: 'm4a', valid: (buffer) => buffer.subarray(4, 8).toString() === 'ftyp' },
+  'audio/wav': { extension: 'wav', valid: (buffer) => buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WAVE' },
+  'audio/x-wav': { extension: 'wav', valid: (buffer) => buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WAVE' },
+  'audio/ogg': { extension: 'ogg', valid: (buffer) => buffer.subarray(0, 4).toString() === 'OggS' }
+};
 const googleMapsUrlCache = new Map();
 const resolveGoogleMapsUrl = async (value) => {
   const mapUrl = clean(value, 2000);
@@ -94,6 +103,9 @@ const resolveGoogleMapsUrl = async (value) => {
 };
 
 app.disable('x-powered-by');
+// Railway terminates HTTPS at its proxy. Trust that first proxy so uploaded
+// asset URLs use https:// instead of being blocked as mixed content.
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: (process.env.CORS_ORIGINS || process.env.FRONTEND_URL)?.split(',').map((item) => item.trim()).filter(Boolean) || 'http://localhost:5173' }));
 app.use(express.json({ limit: '200kb' }));
@@ -152,6 +164,37 @@ app.post(
   }
 );
 
+app.post(
+  '/api/admin/audio-uploads',
+  requireAdmin,
+  // Some browsers report MP3/M4A files as application/octet-stream (or with
+  // no useful MIME type). Read the raw body and validate the file signature
+  // below instead of rejecting a valid file based only on that header.
+  express.raw({ type: () => true, limit: '25mb' }),
+  async (req, res, next) => {
+    try {
+      const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+      const body = req.body;
+      const declaredAudioType = audioTypes[contentType];
+      const audioType = Buffer.isBuffer(body) && body.length > 0
+        ? (declaredAudioType?.valid(body) ? declaredAudioType : Object.values(audioTypes).find((type) => type.valid(body)))
+        : null;
+      if (!audioType) {
+        return res.status(415).json({ message: 'Chỉ chấp nhận tệp nhạc MP3, M4A, WAV hoặc OGG hợp lệ.' });
+      }
+      const fileName = `${Date.now()}-${randomUUID()}.${audioType.extension}`;
+      await mkdir(uploadDirectory, { recursive: true });
+      await writeFile(resolve(uploadDirectory, fileName), body, { flag: 'wx' });
+      res.status(201).json({
+        message: 'Tải nhạc lên thành công.',
+        audioUrl: `${req.protocol}://${req.get('host')}/uploads/${fileName}`
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 app.get('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => {
   try {
     const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
@@ -173,6 +216,8 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
   const ceremonyTime = normalizeTime(data.ceremonyTime);
   const receptionGuestTime = normalizeTime(data.receptionGuestTime);
   const receptionTime = normalizeTime(data.receptionTime);
+  const requestedMusicVolume = Number(data.music?.volume ?? 0.35);
+  const musicVolume = Number.isFinite(requestedMusicVolume) ? Math.min(1, Math.max(0, requestedMusicVolume)) : 0.35;
 
   if (!clean(data.groomName, 120) || !clean(data.brideName, 120) || !/^\d{4}-\d{2}-\d{2}$/.test(clean(data.weddingDate, 10)) ||
       !clean(data.invitationHeading, 150) || !clean(data.announcementText, 500) || !clean(data.ceremonyIntro, 255) || !clean(data.ceremonyVenue, 200) ||
@@ -200,7 +245,8 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
       `UPDATE invitations SET groom_name = ?, bride_name = ?, tagline = ?, invitation_heading = ?, announcement_text = ?,
        groom_role = ?, bride_role = ?, ceremony_intro = ?, ceremony_venue = ?, wedding_date = ?, ceremony_time = ?,
        reception_guest_time = ?, reception_time = ?, lunar_date = ?, venue_name = ?, venue_address = ?,
-       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?, is_published = ?
+       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?,
+       music_url = ?, music_title = ?, music_enabled = ?, music_volume = ?, is_published = ?
        WHERE id = ?`,
       [
         clean(data.groomName, 120), clean(data.brideName, 120), clean(data.tagline, 255), clean(data.invitationHeading, 150),
@@ -225,7 +271,8 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
             message: clean(data.gift?.bride?.message, 255),
             qrImage: clean(data.gift?.bride?.qrImage, 255)
           }
-        }), data.isPublished === false ? 0 : 1, invitation.id
+        }), clean(data.music?.url, 500), clean(data.music?.title, 150), data.music?.enabled === true ? 1 : 0,
+        musicVolume, data.isPublished === false ? 0 : 1, invitation.id
       ]
     );
 

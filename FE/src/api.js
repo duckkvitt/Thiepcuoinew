@@ -50,6 +50,32 @@ async function adminUpload(token, file) {
   return data;
 }
 
+async function adminAudioUpload(token, file) {
+  const audioContentTypes = {
+    mp3: 'audio/mpeg',
+    m4a: 'audio/mp4',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg'
+  };
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  const contentType = file.type || audioContentTypes[extension] || 'application/octet-stream';
+  const response = await fetch(`${API_URL}/admin/audio-uploads`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': contentType
+    },
+    body: file
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.message || 'Không thể tải tệp nhạc lên máy chủ.');
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}
+
 export const invitationApi = {
   getInvitation: () => request(`/invitations/${slug}`),
   getInvitee: (token) => request(`/invitations/${slug}/invitees/${encodeURIComponent(token)}`),
@@ -72,6 +98,7 @@ export const adminApi = {
   }),
   deleteInvitee: (token, id) => adminRequest(`/invitations/${slug}/invitees/${id}`, { token, method: 'DELETE' }),
   uploadImage: (token, file) => adminUpload(token, file),
+  uploadAudio: (token, file) => adminAudioUpload(token, file),
   updateWish: (token, id, isVisible) => adminRequest(`/invitations/${slug}/wishes/${id}`, {
     token, method: 'PATCH', body: JSON.stringify({ isVisible })
   }),
