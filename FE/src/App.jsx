@@ -4,7 +4,6 @@ import {
   Flower2, MapPin, Navigation, QrCode, Send, Sparkles, X
 } from 'lucide-react';
 import { invitationApi } from './api.js';
-import { fallbackInvitation, fallbackWishes } from './fallbackData.js';
 import { googleMapsEmbedUrl } from './mapUtils.js';
 import './styles.css';
 
@@ -400,8 +399,8 @@ function GiftModal({ gift, onClose }) {
 }
 
 export default function App() {
-  const [data, setData] = useState(fallbackInvitation);
-  const [wishes, setWishes] = useState(fallbackWishes);
+  const [data, setData] = useState(null);
+  const [wishes, setWishes] = useState([]);
   const [modal, setModal] = useState(null);
   const [offline, setOffline] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -433,14 +432,21 @@ export default function App() {
   };
 
   if (unavailable) return <main className="invitation-unavailable">
-    <div><span>TA &amp; HY</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
+    <div><span>THIỆP CƯỚI</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
+  </main>;
+
+  if (!data) return <main className="invitation-unavailable">
+    <div>
+      <span>THIỆP CƯỚI</span>
+      <h1>{offline ? 'Chưa thể tải dữ liệu' : 'Đang tải thiệp cưới...'}</h1>
+      <p>{offline ? 'Vui lòng kiểm tra kết nối tới API và thử tải lại trang.' : 'Vui lòng chờ trong giây lát.'}</p>
+    </div>
   </main>;
 
   return <>
     {!hasEntered && <EntryGate data={data} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
     <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
-    {offline && <div className="offline-note">Đang hiển thị dữ liệu mẫu — hãy chạy API và MySQL để gửi RSVP/lời chúc.</div>}
     <Hero data={data} />
     <InvitationCard data={data} />
     <Gallery data={data} />

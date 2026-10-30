@@ -57,7 +57,7 @@ main {
 .entry-card button:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 28px rgba(74,10,15,.33); }
 .entry-card button > span { position: absolute; inset: 0 auto 0 -55%; width: 42%; transform: skewX(-25deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent); animation: entry-shine 2.7s 1.2s ease-in-out infinite; }
 .entry-card small { position: relative; z-index: 2; margin-top: 16px; color: rgba(104,21,29,.48); letter-spacing: .2em; font: 8px Georgia, serif; }
-.entry-hint { position: absolute; bottom: 22px; margin: 0; color: rgba(255,246,233,.55); text-transform: uppercase; letter-spacing: .16em; font-size: 8px; animation: entry-hint 2s ease-in-out infinite; }
+.entry-hint { --hint-duration: 4.5s; position: absolute; bottom: 22px; max-width: calc(100% - 32px); margin: 0; color: rgba(255,246,233,.7); text-align: center; text-transform: uppercase; letter-spacing: .16em; font-size: clamp(11px, .8vw, 13px); font-weight: 600; line-height: 1.5; animation: entry-hint var(--hint-duration) ease-in-out infinite; }
 .entry-petals { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .entry-petal { position: absolute; left: var(--left); top: -12vh; width: var(--size); height: var(--size); opacity: 0; filter: drop-shadow(0 3px 4px rgba(35,0,3,.18)); animation: entry-petal-fall var(--duration) var(--delay) linear infinite; will-change: transform, opacity; }
 .entry-petal.heart { top: -30px; color: #cf9550; animation-name: entry-heart-float; animation-timing-function: ease-in-out; }
@@ -367,6 +367,7 @@ main {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .entry-petal { animation-duration: var(--duration) !important; animation-iteration-count: infinite !important; }
   .entry-seal { animation-duration: var(--seal-duration) !important; animation-iteration-count: infinite !important; }
+  .entry-hint { animation-duration: var(--hint-duration) !important; animation-iteration-count: infinite !important; }
   .entry-gate.opening { animation-duration: var(--entry-open-duration) !important; }
   .entry-gate.opening .entry-card { animation-duration: var(--entry-card-open-duration) !important; }
 }
