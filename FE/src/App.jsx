@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Gift, Heart,
-  MapPin, Navigation, QrCode, Send, Sparkles, X
+  Flower2, MapPin, Navigation, QrCode, Send, Sparkles, X
 } from 'lucide-react';
 import { invitationApi } from './api.js';
 import { fallbackInvitation, fallbackWishes } from './fallbackData.js';
@@ -11,6 +11,60 @@ import './styles.css';
 const pad = (value) => String(value).padStart(2, '0');
 const toLocalDate = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00`);
 const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'admin';
+const ENTRY_OPEN_DURATION_MS = 1850;
+const getHeartFallSeconds = (randomValue) => Number((50 + 20 * randomValue).toFixed(1));
+const formatWeddingDate = (value) => {
+  const date = toLocalDate(value);
+  return `${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
+};
+
+function EntryGate({ data, onOpened }) {
+  const [opening, setOpening] = useState(false);
+  const date = toLocalDate(data.weddingDate);
+  const petals = [
+    [4, -6, getHeartFallSeconds(.12), 18, 36, 'heart'], [11, 2.1, 18.5, 15, -42, 'flower'],
+    [18, -38, getHeartFallSeconds(.85), 15, 54, 'heart'], [25, 1.2, 20.5, 13, -28, 'flower'],
+    [33, -18, getHeartFallSeconds(.35), 20, 48, 'heart'], [41, 7.1, 19.5, 16, -52, 'flower'],
+    [49, -52, getHeartFallSeconds(.65), 15, 34, 'heart'], [57, 6.2, 21.5, 14, -44, 'flower'],
+    [65, -29, getHeartFallSeconds(.25), 20, 46, 'heart'], [72, 4.9, 19, 15, -38, 'flower'],
+    [79, -12, getHeartFallSeconds(.75), 17, 55, 'heart'], [85, 3.5, 20, 13, -48, 'flower'],
+    [91, -45, getHeartFallSeconds(.5), 18, 32, 'heart'], [96, 6.7, 19.5, 14, -36, 'flower'],
+    [15, -33, getHeartFallSeconds(.95), 14, 62, 'heart'], [61, -57, getHeartFallSeconds(.4), 17, -58, 'heart']
+  ];
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+
+  const openInvitation = () => {
+    if (opening) return;
+    setOpening(true);
+    window.setTimeout(onOpened, ENTRY_OPEN_DURATION_MS);
+  };
+
+  return <div className={`entry-gate${opening ? ' opening' : ''}`} role="dialog" aria-modal="true" aria-label="Mở thiệp cưới">
+    <div className="entry-glow" aria-hidden="true" />
+    <div className="entry-petals" aria-hidden="true">{petals.map(([left, delay, duration, size, drift, type], index) => {
+      const Particle = type === 'flower' ? Flower2 : Heart;
+      return <Particle key={index} className={`entry-petal ${type}`} style={{ '--left': `${left}%`, '--delay': `${delay}s`, '--duration': `${duration}s`, '--size': `${size}px`, '--drift': `${drift}px`, '--end-drift': `${-drift / 2}px` }} fill={type === 'heart' ? 'currentColor' : 'none'} />;
+    })}</div>
+    <section className="entry-card">
+      <Floral className="entry-floral left" />
+      <Floral className="entry-floral right" />
+      <div className="entry-seal"><Heart fill="currentColor" strokeWidth={0} /></div>
+      <p className="entry-kicker">Wedding invitation</p>
+      <div className="entry-names"><strong>{data.groomName}</strong><i>&amp;</i><strong>{data.brideName}</strong></div>
+      <div className="entry-ornament"><span />◆<span /></div>
+      <time dateTime={String(data.weddingDate).slice(0, 10)}>{formatWeddingDate(data.weddingDate)}</time>
+      <p className="entry-invite">Thân Mời</p>
+      <button type="button" onClick={openInvitation} disabled={opening} autoFocus>{opening ? 'Đang mở...' : 'Mở thiệp'}<span aria-hidden="true" /></button>
+      <small>{pad(date.getDate())} · {pad(date.getMonth() + 1)} · {date.getFullYear()}</small>
+    </section>
+    <p className="entry-hint">Chạm để mở lời mời của chúng tôi</p>
+  </div>;
+}
 
 function SectionTitle({ eyebrow, title, light = false }) {
   return <div className={`section-title ${light ? 'light' : ''}`}>
@@ -25,6 +79,7 @@ function Floral({ className = '' }) {
 }
 
 function Hero({ data }) {
+  const date = toLocalDate(data.weddingDate);
   return <header id="hero" className="hero">
     <div className="hero-topline"><span />{data.tagline}<span /></div>
     <div className="envelope-scene">
@@ -37,7 +92,7 @@ function Hero({ data }) {
     <div className="hero-names">
       <p>{data.groomName}</p><span>&amp;</span><p>{data.brideName}</p>
     </div>
-    <p className="hero-date">03 · 01 · 2026</p>
+    <p className="hero-date">{pad(date.getDate())} · {pad(date.getMonth() + 1)} · {date.getFullYear()}</p>
     <a className="scroll-cue" href="#invitation" aria-label="Xem thông tin lễ cưới"><span /></a>
   </header>;
 }
@@ -350,6 +405,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const [offline, setOffline] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const [hasEntered, setHasEntered] = useState(isPreviewMode);
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -377,10 +433,12 @@ export default function App() {
   };
 
   if (unavailable) return <main className="invitation-unavailable">
-    <div><span>HL &amp; BN</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
+    <div><span>TA &amp; HY</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
   </main>;
 
-  return <main>
+  return <>
+    {!hasEntered && <EntryGate data={data} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+    <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
     {offline && <div className="offline-note">Đang hiển thị dữ liệu mẫu — hãy chạy API và MySQL để gửi RSVP/lời chúc.</div>}
     <Hero data={data} />
@@ -393,5 +451,6 @@ export default function App() {
     <GiftSection onOpen={() => setModal('gift')} />
     {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} />}
     {modal === 'gift' && <GiftModal gift={data.gift} onClose={() => setModal(null)} />}
-  </main>;
+    </main>
+  </>;
 }

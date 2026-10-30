@@ -1,6 +1,6 @@
 export const fallbackInvitation = {
   slug: 'hoang-long-bao-ngoc',
-  groomName: 'Hoàng Long', brideName: 'Bảo Ngọc', tagline: 'SAVE THE DATE',
+  groomName: 'Tiến Anh', brideName: 'Hải Yến', tagline: 'SAVE THE DATE',
   invitationHeading: 'Thông tin lễ cưới',
   announcementText: 'TRÂN TRỌNG BÁO TIN\nLỄ THÀNH HÔN CỦA CON CHÚNG TÔI',
   groomRole: 'TRƯỞNG NAM', brideRole: 'ÚT NỮ',
@@ -37,7 +37,7 @@ export const fallbackInvitation = {
   gallery: [
     { id: 1, image_url: '/images/wedding-hero.png', alt_text: 'Cô dâu chú rể bên nhau' },
     { id: 2, image_url: '/images/wedding-gallery.png', alt_text: 'Khoảnh khắc hạnh phúc của cô dâu chú rể' },
-    { id: 3, image_url: '/images/wedding-hero.png', alt_text: 'Ảnh cưới Hoàng Long và Bảo Ngọc' },
+    { id: 3, image_url: '/images/wedding-hero.png', alt_text: 'Ảnh cưới Tiến Anh và Hải Yến' },
     { id: 4, image_url: '/images/wedding-gallery.png', alt_text: 'Cô dâu chú rể nắm tay' }
   ],
   schedule: [

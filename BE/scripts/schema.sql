@@ -111,7 +111,7 @@ INSERT INTO invitations (
   reception_guest_time, reception_time, lunar_date, venue_name, venue_address,
   map_embed_url, directions_url, hero_image, dress_colors, gift_details
 ) VALUES (
-  1, 'hoang-long-bao-ngoc', 'Hoàng Long', 'Bảo Ngọc', 'SAVE THE DATE', '2026-01-03', '09:00:00',
+  1, 'hoang-long-bao-ngoc', 'Tiến Anh', 'Hải Yến', 'SAVE THE DATE', '2026-01-03', '09:00:00',
   '17:30:00', '18:00:00', '(Tức ngày 15 tháng 11 năm Ất Tỵ)',
   'Trung Tâm Hội Nghị White Palace', '194 Hoàng Văn Thụ, Phường 9, Quận Phú Nhuận, TP. Hồ Chí Minh',
   'https://www.google.com/maps?q=White+Palace+Hoang+Van+Thu&output=embed',
@@ -119,7 +119,7 @@ INSERT INTO invitations (
   '/images/wedding-hero.png',
   JSON_ARRAY('#5b1118', '#963b43', '#d6aa46', '#eee5d8'),
   JSON_OBJECT(
-    'groom', JSON_OBJECT('label', 'Chú rể', 'bankName', 'Vietcombank', 'accountName', 'DANG HOANG LONG', 'accountNumber', '0123456789', 'message', 'HLBN 03012026', 'qrImage', ''),
+    'groom', JSON_OBJECT('label', 'Chú rể', 'bankName', 'Vietcombank', 'accountName', 'TIEN ANH', 'accountNumber', '0123456789', 'message', 'TAYH 03012026', 'qrImage', ''),
     'bride', JSON_OBJECT('label', 'Cô dâu', 'bankName', '', 'accountName', '', 'accountNumber', '', 'message', '', 'qrImage', '')
   )
 ) ON DUPLICATE KEY UPDATE id = VALUES(id);
