@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Gift, Heart,
+  CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Heart,
   Flower2, MapPin, Navigation, Pause, Play, QrCode, Send, Sparkles, X
 } from 'lucide-react';
 import { invitationApi } from './api.js';
@@ -338,9 +338,13 @@ function Guestbook({ wishes, onSubmit, initialGuestName = '' }) {
 
 function GiftSection({ onOpen }) {
   return <section id="gift" className="section gift-section">
-    <SectionTitle title="Hộp quà mừng" />
-    <button className="gift-envelope" onClick={onOpen} aria-label="Mở hộp quà mừng">
-      <span className="gift-card"><Gift size={38} /><b>Hỷ</b></span><i /><em><Heart size={22} /></em>
+    <SectionTitle title="Lì xì mừng cưới" />
+    <button className="lucky-money" onClick={onOpen} aria-label="Mở lì xì mừng cưới">
+      <span className="lucky-money-cluster" aria-hidden="true">
+        <img className="lucky-envelope-image lucky-envelope-large" src="/images/li-xi.png" alt="" draggable="false" />
+        <img className="lucky-envelope-image lucky-envelope-small" src="/images/li-xi.png" alt="" draggable="false" />
+        <i className="lucky-spark lucky-spark-one">✦</i><i className="lucky-spark lucky-spark-two">✦</i>
+      </span>
     </button>
     <button className="gift-open" onClick={onOpen}>Nhấn để mở</button>
     <p>Sự hiện diện của quý khách là niềm vinh hạnh của gia đình chúng tôi!</p>

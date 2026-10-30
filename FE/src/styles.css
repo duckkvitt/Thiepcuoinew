@@ -265,14 +265,21 @@ main {
 .wishes p { margin: 13px 0 0; font: 13px/1.55 Georgia, serif; }
 
 /* Gift */
-.gift-section { min-height: 650px; padding-top: 76px; text-align: center; }
-.gift-envelope { position: relative; z-index: 2; display: block; width: 300px; height: 250px; margin: 0 auto 8px; padding: 0; background: none; border: 0; cursor: pointer; filter: drop-shadow(0 18px 16px rgba(64,13,13,.24)); transition: transform .35s ease; }
-.gift-envelope:hover { transform: translateY(-8px) rotate(-1deg); }
-.gift-envelope > i { position: absolute; left: 10%; bottom: 4%; width: 80%; height: 67%; background: linear-gradient(145deg, #a82129, #6c1017); clip-path: polygon(0 10%, 50% 57%, 100% 10%, 100% 100%, 0 100%); }
-.gift-card { position: absolute; z-index: -1; display: flex; flex-direction: column; align-items: center; justify-content: center; left: 27%; top: 5%; width: 46%; height: 66%; color: #e4bd68; background: linear-gradient(145deg, #8a1720, #580b11); border: 1px solid #bd7b45; transform: rotate(-7deg); transition: transform .4s; }
-.gift-envelope:hover .gift-card { transform: rotate(-4deg) translateY(-18px); }
-.gift-card b { margin-top: 10px; font: 42px 'Cormorant Garamond', Georgia, serif; }
-.gift-envelope > em { position: absolute; z-index: 4; left: 50%; bottom: 27%; display: grid; place-items: center; width: 45px; height: 45px; transform: translateX(-50%); color: #7a3213; background: #d5a650; border: 3px double #854b1c; border-radius: 50%; }
+.gift-section { min-height: 680px; padding-top: 76px; text-align: center; }
+.lucky-money { position: relative; z-index: 2; display: block; width: min(360px, 92vw); height: 330px; margin: -6px auto 2px; padding: 0; background: none; border: 0; cursor: pointer; filter: drop-shadow(0 24px 21px rgba(64,13,13,.22)); transform-origin: 50% 76%; transition: transform .58s cubic-bezier(.22, 1, .36, 1), filter .58s ease; }
+.lucky-money:hover, .lucky-money:focus-visible { filter: drop-shadow(0 31px 25px rgba(64,13,13,.28)); transform: translateY(-9px) scale(1.085); outline: none; }
+.lucky-money:focus-visible::after { content: ''; position: absolute; inset: 8px; border: 2px solid rgba(132,58,34,.38); border-radius: 18px; }
+.lucky-money:active { transform: translateY(-4px) scale(1.03); }
+.lucky-money-cluster { position: absolute; inset: 0; display: block; transform-origin: 50% 74%; }
+.lucky-money:hover .lucky-money-cluster, .lucky-money:focus-visible .lucky-money-cluster { animation: lucky-money-shake 1.55s ease-in-out .28s infinite; }
+.lucky-envelope-image { position: absolute; display: block; height: auto; object-fit: contain; pointer-events: none; user-select: none; }
+.lucky-envelope-large { z-index: 2; left: 5%; top: 0; width: 58%; transform: rotate(-11deg); }
+.lucky-envelope-small { z-index: 1; right: 5%; top: 14%; width: 47%; transform: rotate(15deg); }
+.lucky-spark { position: absolute; z-index: 5; color: #d5a74a; font-style: normal; text-shadow: 0 0 8px rgba(236,190,93,.65); animation: lucky-sparkle 2.3s ease-in-out infinite; }
+.lucky-spark-one { left: 16%; top: 6%; font-size: 22px; }
+.lucky-spark-two { right: 16%; top: 14%; font-size: 16px; animation-delay: .8s; }
+@keyframes lucky-money-shake { 0%, 100% { transform: rotate(0deg); } 20% { transform: rotate(-1.5deg); } 40% { transform: rotate(1.25deg); } 60% { transform: rotate(-.9deg); } 80% { transform: rotate(.6deg); } }
+@keyframes lucky-sparkle { 0%, 100% { opacity: .35; transform: scale(.8) rotate(0deg); } 50% { opacity: 1; transform: scale(1.16) rotate(16deg); } }
 .gift-open { position: relative; z-index: 2; padding: 7px; background: none; border: 0; border-bottom: 1px solid; cursor: pointer; font: 13px Georgia, serif; }
 .gift-section > p { position: relative; z-index: 1; margin: 45px auto; font: 13px Georgia, serif; }
 .gift-section > small { position: relative; z-index: 1; color: rgba(91,17,24,.45); }
@@ -381,6 +388,7 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .lucky-money-cluster, .lucky-spark { animation: none !important; }
   .entry-petal { animation-duration: var(--duration) !important; animation-iteration-count: infinite !important; }
   .entry-seal { animation-duration: var(--seal-duration) !important; animation-iteration-count: infinite !important; }
   .entry-hint { animation-duration: var(--hint-duration) !important; animation-iteration-count: infinite !important; }
