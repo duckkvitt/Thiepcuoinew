@@ -424,6 +424,7 @@ export default function App() {
   const [hasEntered, setHasEntered] = useState(isPreviewMode);
   const [musicPlaying, setMusicPlaying] = useState(false);
   const audioRef = useRef(null);
+  const invitationReady = data !== null;
 
   useEffect(() => {
     if (isPreviewMode) {
@@ -451,6 +452,32 @@ export default function App() {
       })
       .catch((error) => { if (error.status === 404) setUnavailable(true); else setOffline(true); });
   }, []);
+
+  useEffect(() => {
+    if (!hasEntered || !invitationReady) return undefined;
+
+    const revealTargets = Array.from(document.querySelectorAll('.hero, main > .section'));
+    revealTargets.forEach((target) => target.classList.add('scroll-reveal'));
+
+    if (!('IntersectionObserver' in window)) {
+      revealTargets.forEach((target) => target.classList.add('is-in-view'));
+      return () => revealTargets.forEach((target) => target.classList.remove('scroll-reveal', 'is-in-view'));
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-in-view');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+
+    revealTargets.forEach((target) => observer.observe(target));
+    return () => {
+      observer.disconnect();
+      revealTargets.forEach((target) => target.classList.remove('scroll-reveal', 'is-in-view'));
+    };
+  }, [hasEntered, invitationReady]);
 
   const createWish = async (payload) => {
     const wish = await invitationApi.createWish(payload);
