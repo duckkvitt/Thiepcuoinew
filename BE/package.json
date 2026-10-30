@@ -7,7 +7,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "db:init": "node scripts/init-db.js",
-    "check": "node --check src/server.js && node --check src/db.js && node --check src/validation.js && node --check scripts/init-db.js"
+    "check": "node --check src/server.js && node --check src/db.js && node --check src/typography.js && node --check src/validation.js && node --check scripts/init-db.js"
   },
   "dependencies": {
     "@vercel/blob": "^2.8.2",

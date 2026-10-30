@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS invitations (
   hero_image VARCHAR(255) NOT NULL,
   dress_colors JSON NOT NULL,
   gift_details JSON NOT NULL,
+  typography_settings JSON NULL,
   music_url VARCHAR(500) NOT NULL DEFAULT '',
   music_title VARCHAR(150) NOT NULL DEFAULT '',
   music_enabled BOOLEAN NOT NULL DEFAULT FALSE,

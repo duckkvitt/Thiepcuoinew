@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import { normalizeTypographySettings } from './typography.js';
 
 dotenv.config();
 
@@ -101,6 +102,7 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
     heroImage: invitation.hero_image,
     dressColors: parseJson(invitation.dress_colors, []),
     gift: normalizeGift(invitation.gift_details),
+    typography: normalizeTypographySettings(parseJson(invitation.typography_settings, {})),
     music: {
       url: invitation.music_url || '',
       title: invitation.music_title || '',

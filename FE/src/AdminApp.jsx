@@ -3,10 +3,11 @@ import {
   ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Copy, Eye, EyeOff,
   Expand, Gift, Image, LayoutDashboard, Link2, LocateFixed, LogOut, MapPin,
   MessageSquare, MonitorSmartphone, Music2, Plus, Save, Settings, Shrink,
-  Trash2, UploadCloud, UserPlus, Users, X
+  Trash2, Type, UploadCloud, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
 import { formatVietnameseLunarDate } from './lunarDate.js';
+import { FONT_OPTIONS, INVITATION_PART_DEFAULTS, INVITATION_PARTS, TYPOGRAPHY_DEFAULTS, TYPOGRAPHY_SECTIONS, normalizeTypography } from './typography.js';
 import './admin.css';
 
 const tokenKey = 'wedding-admin-token';
@@ -16,6 +17,7 @@ const normalizeInvitationGift = (invitation) => {
   return {
     ...invitation,
     music: { url: '', title: '', enabled: false, volume: 0.35, ...(invitation.music || {}) },
+    typography: normalizeTypography(invitation.typography),
     gift: {
       groom: account(gift.groom || gift, 'Chú rể'),
       bride: account(gift.bride, 'Cô dâu')
@@ -25,6 +27,7 @@ const normalizeInvitationGift = (invitation) => {
 const sections = [
   ['overview', <LayoutDashboard size={18} />, 'Tổng quan'],
   ['couple', <Settings size={18} />, 'Thông tin thiệp'],
+  ['typography', <Type size={18} />, 'Kiểu chữ'],
   ['families', <Users size={18} />, 'Hai gia đình'],
   ['venue', <MapPin size={18} />, 'Địa điểm'],
   ['gallery', <Image size={18} />, 'Album ảnh'],
@@ -187,6 +190,40 @@ export default function AdminApp() {
   const updateMusic = (key, value) => setData((current) => ({
     ...current,
     music: { ...current.music, [key]: value }
+  }));
+  const updateTypography = (section, key, value) => setData((current) => ({
+    ...current,
+    typography: {
+      ...current.typography,
+      [section]: { ...current.typography[section], [key]: value }
+    }
+  }));
+  const resetTypography = (section) => setData((current) => ({
+    ...current,
+    typography: { ...current.typography, [section]: normalizeTypography({ [section]: TYPOGRAPHY_DEFAULTS[section] })[section] }
+  }));
+  const updateInvitationPart = (part, key, value) => setData((current) => ({
+    ...current,
+    typography: {
+      ...current.typography,
+      invitation: {
+        ...current.typography.invitation,
+        parts: {
+          ...current.typography.invitation.parts,
+          [part]: { ...current.typography.invitation.parts[part], [key]: value }
+        }
+      }
+    }
+  }));
+  const resetInvitationPart = (part) => setData((current) => ({
+    ...current,
+    typography: {
+      ...current.typography,
+      invitation: {
+        ...current.typography.invitation,
+        parts: { ...current.typography.invitation.parts, [part]: { ...INVITATION_PART_DEFAULTS[part] } }
+      }
+    }
   }));
   const updateVenueLocation = (location, key, value) => setData((current) => ({
     ...current,
@@ -419,6 +456,50 @@ export default function AdminApp() {
           </div></Field>
         </div>
         {data.heroImage && <div className="admin-hero-preview"><img src={data.heroImage} alt="Xem trước ảnh bìa" /><span>Xem trước ảnh bìa</span></div>}
+      </Panel>
+
+      <Panel id="typography" eyebrow="Typography" title="Kiểu chữ theo từng phần">
+        <p className="admin-panel-description">Chọn font riêng cho tiêu đề và nội dung của từng khu vực. Thay đổi được cập nhật ngay trong khung xem trước và chỉ lưu khi bạn bấm “Lưu thay đổi”.</p>
+        <div className="admin-typography-grid">{TYPOGRAPHY_SECTIONS.map((section) => {
+          const setting = data.typography[section.id];
+          const headingFont = FONT_OPTIONS.find((font) => font.id === setting.headingFont) || FONT_OPTIONS[0];
+          const bodyFont = FONT_OPTIONS.find((font) => font.id === setting.bodyFont) || FONT_OPTIONS[0];
+          return <article className="admin-typography-card" key={section.id}>
+            <header><div><span>Phần thiệp</span><h3>{section.label}</h3></div><button type="button" onClick={() => showPreviewSection(section.preview)}><LocateFixed size={14} /> Xem phần này</button></header>
+            <div className="admin-font-sample">
+              <strong style={{ fontFamily: headingFont.stack, fontSize: `${Math.min(setting.headingSize, 38)}px`, fontWeight: setting.headingWeight, fontStyle: setting.headingItalic ? 'italic' : 'normal' }}>Ngày chung đôi</strong>
+              <span style={{ fontFamily: bodyFont.stack, fontSize: `${setting.bodySize}px` }}>Trân trọng kính mời quý khách đến chung vui cùng gia đình.</span>
+            </div>
+            <div className="admin-form-grid admin-typography-form">
+              <Field label="Font tiêu đề"><select value={setting.headingFont} onChange={(event) => updateTypography(section.id, 'headingFont', event.target.value)}>{FONT_OPTIONS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}</select></Field>
+              <Field label="Font nội dung"><select value={setting.bodyFont} onChange={(event) => updateTypography(section.id, 'bodyFont', event.target.value)}>{FONT_OPTIONS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}</select></Field>
+              <Field label={`Cỡ tiêu đề: ${setting.headingSize}px`}><input type="range" min="18" max="80" step="1" value={setting.headingSize} onChange={(event) => updateTypography(section.id, 'headingSize', Number(event.target.value))} /></Field>
+              <Field label={`Cỡ nội dung: ${setting.bodySize}px`}><input type="range" min="10" max="22" step="1" value={setting.bodySize} onChange={(event) => updateTypography(section.id, 'bodySize', Number(event.target.value))} /></Field>
+              <Field label="Độ đậm tiêu đề"><select value={setting.headingWeight} onChange={(event) => updateTypography(section.id, 'headingWeight', Number(event.target.value))}><option value="400">Mảnh</option><option value="500">Vừa</option><option value="600">Đậm vừa</option><option value="700">Đậm</option></select></Field>
+              <label className="admin-font-italic"><input type="checkbox" checked={setting.headingItalic} onChange={(event) => updateTypography(section.id, 'headingItalic', event.target.checked)} /><span /> Chữ nghiêng</label>
+            </div>
+            <button type="button" className="admin-font-reset" onClick={() => resetTypography(section.id)}>Khôi phục mặc định</button>
+          </article>;
+        })}</div>
+        <section className="admin-invitation-typography">
+          <header><div><span>Chi tiết nâng cao</span><h3>Chữ bên trong khung “Thông tin lễ cưới”</h3></div><button type="button" onClick={() => showPreviewSection('invitation')}><LocateFixed size={14} /> Xem khung lễ cưới</button></header>
+          <p>Tiêu đề khung dùng thiết lập “Thông tin lễ cưới” ở phía trên. Sáu nhóm dưới đây điều khiển độc lập từng nội dung còn lại.</p>
+          <div className="admin-invitation-part-grid">{INVITATION_PARTS.map((part) => {
+            const setting = data.typography.invitation.parts[part.id];
+            const selectedFont = FONT_OPTIONS.find((font) => font.id === setting.font) || FONT_OPTIONS[0];
+            return <article key={part.id}>
+              <h4>{part.label}</h4>
+              <div className="admin-part-sample" style={{ fontFamily: selectedFont.stack, fontSize: `${Math.min(setting.size, 30)}px`, fontWeight: setting.weight, fontStyle: setting.italic ? 'italic' : 'normal' }}>{part.sample}</div>
+              <div className="admin-form-grid admin-part-form">
+                <Field label="Kiểu chữ" wide><select value={setting.font} onChange={(event) => updateInvitationPart(part.id, 'font', event.target.value)}>{FONT_OPTIONS.map((font) => <option key={font.id} value={font.id}>{font.label}</option>)}</select></Field>
+                <Field label={`Cỡ chữ: ${setting.size}px`}><input type="range" min="8" max="80" step="1" value={setting.size} onChange={(event) => updateInvitationPart(part.id, 'size', Number(event.target.value))} /></Field>
+                <Field label="Độ đậm"><select value={setting.weight} onChange={(event) => updateInvitationPart(part.id, 'weight', Number(event.target.value))}><option value="400">Mảnh</option><option value="500">Vừa</option><option value="600">Đậm vừa</option><option value="700">Đậm</option></select></Field>
+                <label className="admin-font-italic"><input type="checkbox" checked={setting.italic} onChange={(event) => updateInvitationPart(part.id, 'italic', event.target.checked)} /><span /> Chữ nghiêng</label>
+              </div>
+              <button type="button" className="admin-font-reset" onClick={() => resetInvitationPart(part.id)}>Khôi phục nhóm này</button>
+            </article>;
+          })}</div>
+        </section>
       </Panel>
 
       <Panel id="families" eyebrow="Lễ thành hôn" title="Thông tin hai gia đình" previewSection="invitation" onPreview={showPreviewSection}>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Dancing+Script:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap');
 
 :root {
   color: #59151a;
@@ -385,6 +385,38 @@ main {
   .timeline-floral { display: none; }
   .wishes article > div { flex-direction: column; gap: 5px; }
 }
+
+/* Per-section typography, configured from the admin page */
+.typography-scope :where(p, small, time, button, input, textarea, .family, .date-lockup, .service-times, .calendar-grid, .location-heading, .direction-link, .timeline-item, .wishes article) { font-family: var(--custom-body-font); }
+.typography-scope :where(.entry-kicker, .entry-invite, .hero-topline, .hero-date, .formal-copy, .venue-home, .reception-card > h3, .lunar, .dress-code > p, .timeline-item, .guestbook-form input, .guestbook-form textarea, .wishes, .gift-open, .gift-section > p, .gift-section > small) { font-size: var(--custom-body-size); }
+.typography-scope .section-title h2 { font-family: var(--custom-heading-font); font-size: var(--custom-heading-size); font-style: var(--custom-heading-style); font-weight: var(--custom-heading-weight); }
+.entry-card.typography-scope .entry-names, .entry-card.typography-scope .entry-names strong,
+.hero.typography-scope .hero-names, .hero.typography-scope .hero-names p, .hero.typography-scope .hero-names span,
+.invitation-wrap.typography-scope .couple-names h3, .invitation-wrap.typography-scope .couple-names b,
+.reception-section.typography-scope .calendar-card h3,
+.venue-section.typography-scope .location-heading h3 {
+  font-family: var(--custom-heading-font);
+  font-style: var(--custom-heading-style);
+  font-weight: var(--custom-heading-weight);
+}
+.entry-card.typography-scope .entry-names, .entry-card.typography-scope .entry-names strong,
+.hero.typography-scope .hero-names, .hero.typography-scope .hero-names p { font-size: var(--custom-heading-size); }
+
+/* Fine-grained typography inside the invitation card */
+.invitation-wrap.typography-scope .families, .invitation-wrap.typography-scope .families * { font-family: var(--invitation-families-font) !important; font-style: var(--invitation-families-style); font-weight: var(--invitation-families-weight); }
+.invitation-wrap.typography-scope .family strong { font-size: var(--invitation-families-size); }
+.invitation-wrap.typography-scope .family span, .invitation-wrap.typography-scope .family small { font-size: max(8px, calc(var(--invitation-families-size) - 2px)); }
+.invitation-wrap.typography-scope .formal-copy { font-family: var(--invitation-announcement-font); font-size: var(--invitation-announcement-size); font-style: var(--invitation-announcement-style); font-weight: var(--invitation-announcement-weight); }
+.invitation-wrap.typography-scope .couple-names h3, .invitation-wrap.typography-scope .couple-names b { font-family: var(--invitation-names-font); font-style: var(--invitation-names-style); font-weight: var(--invitation-names-weight); }
+.invitation-wrap.typography-scope .couple-names h3 { font-size: var(--invitation-names-size); }
+.invitation-wrap.typography-scope .couple-names b { font-size: max(20px, calc(var(--invitation-names-size) - 18px)); }
+.invitation-wrap.typography-scope .couple-names em { font-family: var(--invitation-roles-font); font-size: var(--invitation-roles-size); font-style: var(--invitation-roles-style); font-weight: var(--invitation-roles-weight); }
+.invitation-wrap.typography-scope .venue-home, .invitation-wrap.typography-scope .venue-home * { font-family: var(--invitation-venue-font); font-size: var(--invitation-venue-size); font-style: var(--invitation-venue-style); font-weight: var(--invitation-venue-weight); }
+.invitation-wrap.typography-scope .date-lockup, .invitation-wrap.typography-scope .date-lockup * { font-family: var(--invitation-date-font); font-style: var(--invitation-date-style); font-weight: var(--invitation-date-weight); }
+.invitation-wrap.typography-scope .date-lockup > div:first-child, .invitation-wrap.typography-scope .date-lockup small { font-size: var(--invitation-date-size); }
+.invitation-wrap.typography-scope .date-core b { font-size: max(30px, calc(var(--invitation-date-size) + 33px)); }
+.invitation-wrap.typography-scope .date-core p strong { font-size: calc(var(--invitation-date-size) + 2px); }
+.invitation-wrap.typography-scope .date-core p span { font-size: calc(var(--invitation-date-size) + 7px); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { invitationApi } from './api.js';
 import { googleMapsEmbedUrl } from './mapUtils.js';
+import { typographyStyle } from './typography.js';
 import './styles.css';
 
 const pad = (value) => String(value).padStart(2, '0');
@@ -51,7 +52,7 @@ function EntryGate({ data, inviteeName, onOpening, onOpened }) {
       const Particle = type === 'flower' ? Flower2 : Heart;
       return <Particle key={index} className={`entry-petal ${type}`} style={{ '--left': `${left}%`, '--delay': `${delay}s`, '--duration': `${duration}s`, '--size': `${size}px`, '--drift': `${drift}px`, '--end-drift': `${-drift / 2}px` }} fill={type === 'heart' ? 'currentColor' : 'none'} />;
     })}</div>
-    <section className="entry-card">
+    <section className="entry-card typography-scope" style={typographyStyle(data.typography, 'entry')}>
       <Floral className="entry-floral left" />
       <Floral className="entry-floral right" />
       <div className="entry-seal"><Heart fill="currentColor" strokeWidth={0} /></div>
@@ -81,7 +82,7 @@ function Floral({ className = '' }) {
 
 function Hero({ data }) {
   const date = toLocalDate(data.weddingDate);
-  return <header id="hero" className="hero">
+  return <header id="hero" className="hero typography-scope" style={typographyStyle(data.typography, 'hero')}>
     <div className="hero-topline"><span />{data.tagline}<span /></div>
     <div className="envelope-scene">
       <Floral className="hero-floral" />
@@ -121,7 +122,7 @@ function DateLockup({ data }) {
 function InvitationCard({ data }) {
   const groomFamily = data.families.find((item) => item.side === 'groom');
   const brideFamily = data.families.find((item) => item.side === 'bride');
-  return <section id="invitation" className="section paper-section invitation-wrap">
+  return <section id="invitation" className="section paper-section invitation-wrap typography-scope" style={typographyStyle(data.typography, 'invitation')}>
     <div className="burgundy-card invitation-card">
       <SectionTitle title={data.invitationHeading} light />
       <div className="families">
@@ -179,7 +180,7 @@ function Gallery({ data }) {
     setDragX(0);
   };
 
-  return <section id="gallery" className="section gallery-section">
+  return <section id="gallery" className="section gallery-section typography-scope" style={typographyStyle(data.typography, 'gallery')}>
     <SectionTitle title="Album ảnh" />
     <div
       className={`gallery-stage${isDragging ? ' is-dragging' : ''}`}
@@ -256,7 +257,7 @@ function addToCalendar(data) {
 
 function Reception({ data, onRsvp }) {
   const date = toLocalDate(data.weddingDate);
-  return <section id="reception" className="section reception-section">
+  return <section id="reception" className="section reception-section typography-scope" style={typographyStyle(data.typography, 'reception')}>
     <div className="burgundy-card reception-card">
       <SectionTitle title="Thông tin tiệc cưới" light />
       <h3>TIỆC CƯỚI SẼ DIỄN RA VÀO LÚC:</h3>
@@ -277,7 +278,7 @@ function Venue({ data }) {
     { key: 'groom-home', label: 'Nhà chú rể', ...data.venue.groomHome },
     { key: 'bride-home', label: 'Nhà cô dâu', ...data.venue.brideHome }
   ];
-  return <section id="venue" className="section venue-section">
+  return <section id="venue" className="section venue-section typography-scope" style={typographyStyle(data.typography, 'venue')}>
     <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title="Địa điểm tư gia" />
     <div className="venue-grid">{locations.map((location) => {
       const mapUrl = location.mapUrl || location.directionsUrl || location.mapEmbedUrl;
@@ -291,7 +292,7 @@ function Venue({ data }) {
 }
 
 function DressAndTimeline({ data }) {
-  return <section id="timeline" className="section timeline-section">
+  return <section id="timeline" className="section timeline-section typography-scope" style={typographyStyle(data.typography, 'timeline')}>
     <div className="dress-code">
       <SectionTitle title="Dress code" />
       <p>Trang phục dự tiệc</p>
@@ -309,7 +310,7 @@ function DressAndTimeline({ data }) {
   </section>;
 }
 
-function Guestbook({ wishes, onSubmit, initialGuestName = '' }) {
+function Guestbook({ data, wishes, onSubmit, initialGuestName = '' }) {
   const [form, setForm] = useState({ guestName: initialGuestName, message: '' });
   const [state, setState] = useState({ loading: false, message: '' });
   const submit = async (event) => {
@@ -318,7 +319,7 @@ function Guestbook({ wishes, onSubmit, initialGuestName = '' }) {
       await onSubmit(form); setForm({ guestName: initialGuestName, message: '' }); setState({ loading: false, message: 'Lời chúc đã được gửi. Cảm ơn bạn!' });
     } catch (error) { setState({ loading: false, message: error.message }); }
   };
-  return <section id="guestbook" className="section guestbook-section">
+  return <section id="guestbook" className="section guestbook-section typography-scope" style={typographyStyle(data.typography, 'guestbook')}>
     <form className="guestbook-form" onSubmit={submit}>
       <SectionTitle title="Sổ lưu bút" />
       <input value={form.guestName} onChange={(e) => setForm({ ...form, guestName: e.target.value })} placeholder="Nhập tên*" minLength="2" maxLength="100" required />
@@ -336,8 +337,8 @@ function Guestbook({ wishes, onSubmit, initialGuestName = '' }) {
   </section>;
 }
 
-function GiftSection({ onOpen }) {
-  return <section id="gift" className="section gift-section">
+function GiftSection({ data, onOpen }) {
+  return <section id="gift" className="section gift-section typography-scope" style={typographyStyle(data.typography, 'gift')}>
     <SectionTitle title="Lì xì mừng cưới" />
     <button className="lucky-money" onClick={onOpen} aria-label="Mở lì xì mừng cưới">
       <span className="lucky-money-cluster" aria-hidden="true">
@@ -509,8 +510,8 @@ export default function App() {
     <Reception data={data} onRsvp={() => setModal('rsvp')} />
     <Venue data={data} />
     <DressAndTimeline data={data} />
-    <Guestbook wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
-    <GiftSection onOpen={() => setModal('gift')} />
+    <Guestbook data={data} wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
+    <GiftSection data={data} onOpen={() => setModal('gift')} />
     {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} initialGuestName={invitee?.name} />}
     {modal === 'gift' && <GiftModal gift={data.gift} onClose={() => setModal(null)} />}
     </main>

@@ -11,6 +11,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool, getInvitationBySlug } from './db.js';
 import { adminLoginSchema, rsvpSchema, wishSchema, wishVisibilitySchema } from './validation.js';
+import { normalizeTypographySettings } from './typography.js';
 
 dotenv.config();
 
@@ -245,7 +246,7 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
       `UPDATE invitations SET groom_name = ?, bride_name = ?, tagline = ?, invitation_heading = ?, announcement_text = ?,
        groom_role = ?, bride_role = ?, ceremony_intro = ?, ceremony_venue = ?, wedding_date = ?, ceremony_time = ?,
        reception_guest_time = ?, reception_time = ?, lunar_date = ?, venue_name = ?, venue_address = ?,
-       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?,
+       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?, typography_settings = ?,
        music_url = ?, music_title = ?, music_enabled = ?, music_volume = ?, is_published = ?
        WHERE id = ?`,
       [
@@ -271,7 +272,7 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
             message: clean(data.gift?.bride?.message, 255),
             qrImage: clean(data.gift?.bride?.qrImage, 255)
           }
-        }), clean(data.music?.url, 500), clean(data.music?.title, 150), data.music?.enabled === true ? 1 : 0,
+        }), JSON.stringify(normalizeTypographySettings(data.typography)), clean(data.music?.url, 500), clean(data.music?.title, 150), data.music?.enabled === true ? 1 : 0,
         musicVolume, data.isPublished === false ? 0 : 1, invitation.id
       ]
     );

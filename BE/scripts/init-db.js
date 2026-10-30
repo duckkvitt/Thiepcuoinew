@@ -63,6 +63,7 @@ try {
   await ensureColumn('invitations', 'music_title', "VARCHAR(150) NOT NULL DEFAULT ''");
   await ensureColumn('invitations', 'music_enabled', 'BOOLEAN NOT NULL DEFAULT FALSE');
   await ensureColumn('invitations', 'music_volume', 'DECIMAL(3,2) NOT NULL DEFAULT 0.35');
+  await ensureColumn('invitations', 'typography_settings', 'JSON NULL');
 
   const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
   const adminPassword = String(process.env.ADMIN_PASSWORD || '');

@@ -182,6 +182,36 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-wish-actions { display: flex; gap: 15px; }
 .admin-wishes .admin-wish-actions button.danger { color: #a22630; }
 .admin-empty { padding: 25px; color: #9a8984; text-align: center; font-size: 11px; }
+.admin-typography-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.admin-typography-card { display: grid; gap: 17px; min-width: 0; padding: 20px; background: #faf8f5; border: 1px solid #eee4da; border-radius: 14px; }
+.admin-typography-card > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-typography-card > header span { display: block; margin-bottom: 3px; color: #ad8b54; text-transform: uppercase; letter-spacing: .13em; font-size: 8px; font-weight: 700; }
+.admin-typography-card > header h3 { margin: 0; color: var(--admin-wine); font: 600 21px 'Cormorant Garamond', serif; }
+.admin-typography-card > header button { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 9px; color: var(--admin-wine); background: #fff; border: 1px solid #e2d5ca; border-radius: 7px; cursor: pointer; white-space: nowrap; font-size: 9px; font-weight: 700; }
+.admin-font-sample { display: grid; align-content: center; gap: 7px; min-height: 115px; padding: 17px; color: #5b1118; background: linear-gradient(135deg, #fff, #f5eee5); border: 1px solid #eaded2; border-radius: 11px; overflow: hidden; }
+.admin-font-sample strong { line-height: 1.05; overflow-wrap: anywhere; }
+.admin-font-sample span { color: #776160; line-height: 1.55; }
+.admin-typography-form { gap: 13px; }
+.admin-typography-form input[type='range'] { min-height: 34px; padding: 0; border: 0; box-shadow: none; accent-color: var(--admin-wine); }
+.admin-font-italic { align-self: end; display: flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 12px; color: #705b5a; background: #fff; border: 1px solid #ded3c7; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 700; }
+.admin-font-italic input { position: absolute; opacity: 0; pointer-events: none; }
+.admin-font-italic span { position: relative; width: 36px; height: 20px; background: #c9beb7; border-radius: 20px; transition: .2s; }
+.admin-font-italic span::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: .2s; }
+.admin-font-italic input:checked + span { background: var(--admin-wine); }
+.admin-font-italic input:checked + span::after { transform: translateX(16px); }
+.admin-font-reset { justify-self: start; padding: 0; color: #8d6f69; background: none; border: 0; border-bottom: 1px solid currentColor; cursor: pointer; font-size: 9px; }
+.admin-invitation-typography { margin-top: 30px; padding-top: 28px; border-top: 1px solid var(--admin-line); }
+.admin-invitation-typography > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 7px; }
+.admin-invitation-typography > header span { display: block; margin-bottom: 4px; color: #ad8b54; text-transform: uppercase; letter-spacing: .14em; font-size: 8px; font-weight: 700; }
+.admin-invitation-typography > header h3 { margin: 0; color: var(--admin-wine); font: 600 25px 'Cormorant Garamond', serif; }
+.admin-invitation-typography > header button { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 11px; color: var(--admin-wine); background: #f8eded; border: 1px solid #e3c9cc; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 9px; font-weight: 700; }
+.admin-invitation-typography > p { margin: 0 0 17px; color: #846f6c; font-size: 10px; line-height: 1.6; }
+.admin-invitation-part-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.admin-invitation-part-grid > article { display: grid; gap: 13px; min-width: 0; padding: 18px; background: #fff; border: 1px solid #eadfd4; border-radius: 12px; }
+.admin-invitation-part-grid h4 { margin: 0; color: #5b1118; font: 600 18px 'Cormorant Garamond', serif; }
+.admin-part-sample { display: grid; place-items: center; min-height: 76px; padding: 12px; color: #f4eadc; background: linear-gradient(145deg, #74161e, #4b0a10); border-radius: 9px; text-align: center; line-height: 1.2; overflow-wrap: anywhere; }
+.admin-part-form { gap: 10px; }
+.admin-part-form input[type='range'] { min-height: 34px; padding: 0; border: 0; box-shadow: none; accent-color: var(--admin-wine); }
 .admin-savebar { position: fixed; z-index: 18; right: 25px; bottom: 22px; display: flex; align-items: center; gap: 18px; padding: 10px 10px 10px 18px; background: rgba(255,255,255,.94); border: 1px solid var(--admin-line); border-radius: 12px; box-shadow: 0 15px 45px rgba(54,23,20,.16); backdrop-filter: blur(8px); }
 .admin-savebar span { color: #806d68; font-size: 10px; }
 
@@ -227,6 +257,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-preview-toggle { width: 42px; padding: 0; justify-content: center; font-size: 0; }
   .admin-top-actions .admin-primary { width: 42px; padding: 0; font-size: 0; }
   .admin-panel { padding: 22px 15px; border-radius: 14px; }
+  .admin-typography-grid { grid-template-columns: 1fr; }
+  .admin-invitation-part-grid { grid-template-columns: 1fr; }
+  .admin-invitation-typography > header { align-items: flex-start; }
+  .admin-invitation-typography > header button { width: 34px; padding: 0; justify-content: center; font-size: 0; }
   .admin-stats, .admin-form-grid, .admin-family-grid, .admin-wishes { grid-template-columns: 1fr; }
   .admin-field.wide { grid-column: auto; }
   .admin-image-row { grid-template-columns: 55px 1fr; }
