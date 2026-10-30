@@ -1,0 +1,354 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Gift, Heart,
+  MapPin, Navigation, Send, Sparkles, X
+} from 'lucide-react';
+import { invitationApi } from './api.js';
+import { fallbackInvitation, fallbackWishes } from './fallbackData.js';
+
+const pad = (value) => String(value).padStart(2, '0');
+const toLocalDate = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00`);
+
+function SectionTitle({ eyebrow, title, light = false }) {
+  return <div className={`section-title ${light ? 'light' : ''}`}>
+    {eyebrow && <span>{eyebrow}</span>}
+    <h2>{title}</h2>
+    <i aria-hidden="true">◆</i>
+  </div>;
+}
+
+function Floral({ className = '' }) {
+  return <img className={`floral ${className}`} src="/images/burgundy-flowers.png" alt="" aria-hidden="true" />;
+}
+
+function Hero({ data }) {
+  return <header className="hero">
+    <div className="hero-topline"><span />{data.tagline}<span /></div>
+    <div className="envelope-scene">
+      <Floral className="hero-floral" />
+      <div className="photo-card"><img src={data.heroImage} alt={`Ảnh cưới ${data.groomName} và ${data.brideName}`} /></div>
+      <div className="envelope-back" />
+      <div className="envelope-front" />
+      <div className="wax-seal"><Heart size={24} strokeWidth={1.5} /></div>
+    </div>
+    <div className="hero-names">
+      <p>{data.groomName}</p><span>&amp;</span><p>{data.brideName}</p>
+    </div>
+    <p className="hero-date">03 · 01 · 2026</p>
+    <a className="scroll-cue" href="#invitation" aria-label="Xem thông tin lễ cưới"><span /></a>
+  </header>;
+}
+
+function Family({ family }) {
+  return <div className="family">
+    <span>{family.parent_label}</span>
+    <strong>{family.father_name}</strong>
+    <strong>{family.mother_name}</strong>
+    <small>{family.address}</small>
+  </div>;
+}
+
+function DateLockup({ data }) {
+  const date = toLocalDate(data.weddingDate);
+  return <div className="date-lockup">
+    <div><span>VÀO LÚC {data.ceremonyTime.slice(0, 5)}</span><span>THỨ BẢY</span></div>
+    <div className="date-core"><b>{pad(date.getDate())}</b><i /><p><strong>THÁNG {pad(date.getMonth() + 1)}</strong><span>{date.getFullYear()}</span></p></div>
+    <small>{data.lunarDate}</small>
+  </div>;
+}
+
+function InvitationCard({ data }) {
+  const groomFamily = data.families.find((item) => item.side === 'groom');
+  const brideFamily = data.families.find((item) => item.side === 'bride');
+  return <section id="invitation" className="section paper-section invitation-wrap">
+    <div className="burgundy-card invitation-card">
+      <SectionTitle title="Thông tin lễ cưới" light />
+      <div className="families">
+        {groomFamily && <Family family={groomFamily} />}
+        <div className="family-divider" />
+        {brideFamily && <Family family={brideFamily} />}
+      </div>
+      <p className="formal-copy">TRÂN TRỌNG BÁO TIN<br />LỄ THÀNH HÔN CỦA CON CHÚNG TÔI</p>
+      <div className="couple-names"><h3>Đặng {data.groomName}</h3><em>TRƯỞNG NAM</em><b>&amp;</b><h3>Vũ {data.brideName}</h3><em>ÚT NỮ</em></div>
+      <p className="venue-home">LỄ THÀNH HÔN ĐƯỢC CỬ HÀNH TẠI<br /><strong>TƯ GIA</strong></p>
+      <DateLockup data={data} />
+      <Floral className="card-floral" />
+    </div>
+  </section>;
+}
+
+function Gallery({ data }) {
+  const [active, setActive] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef(null);
+  const images = data.gallery;
+  const move = (direction) => {
+    if (images.length < 2) return;
+    setActive((current) => (current + direction + images.length) % images.length);
+  };
+
+  const startSwipe = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (event.target.closest('button')) return;
+    dragStart.current = { pointerId: event.pointerId, x: event.clientX };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setIsDragging(true);
+    setDragX(0);
+  };
+
+  const updateSwipe = (event) => {
+    if (!dragStart.current || dragStart.current.pointerId !== event.pointerId) return;
+    const distance = event.clientX - dragStart.current.x;
+    setDragX(Math.max(-140, Math.min(140, distance)));
+  };
+
+  const finishSwipe = (event) => {
+    if (!dragStart.current || dragStart.current.pointerId !== event.pointerId) return;
+    const distance = event.clientX - dragStart.current.x;
+    dragStart.current = null;
+    setIsDragging(false);
+    setDragX(0);
+    if (Math.abs(distance) >= 48) move(distance < 0 ? 1 : -1);
+  };
+
+  const cancelSwipe = () => {
+    dragStart.current = null;
+    setIsDragging(false);
+    setDragX(0);
+  };
+
+  return <section className="section gallery-section">
+    <SectionTitle title="Album ảnh" />
+    <div
+      className={`gallery-stage${isDragging ? ' is-dragging' : ''}`}
+      style={{ '--drag-x': `${dragX}px`, '--drag-tilt': `${dragX / 9}deg` }}
+      onPointerDown={startSwipe}
+      onPointerMove={updateSwipe}
+      onPointerUp={finishSwipe}
+      onPointerCancel={cancelSwipe}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+      }}
+      role="region"
+      tabIndex="0"
+      aria-label="Album ảnh cưới, vuốt hoặc dùng phím mũi tên để chuyển ảnh"
+    >
+      <button onClick={() => move(-1)} aria-label="Ảnh trước"><ChevronLeft /></button>
+      {images.map((image, index) => {
+        const offset = (index - active + images.length) % images.length;
+        let position = 'hidden';
+        if (offset === 0) position = 'active';
+        else if (offset === 1) position = 'next';
+        else if (offset === images.length - 1) position = 'prev';
+        return <img key={image.id} className={`gallery-image ${position}`} src={image.image_url} alt={image.alt_text} draggable="false" />;
+      })}
+      <button onClick={() => move(1)} aria-label="Ảnh kế"><ChevronRight /></button>
+    </div>
+    <div className="gallery-dots">
+      {images.map((image, index) => <button key={image.id} onClick={() => setActive(index)} className={index === active ? 'active' : ''} aria-label={`Xem ảnh ${index + 1}`} />)}
+    </div>
+  </section>;
+}
+
+function MonthCalendar({ weddingDate }) {
+  const date = useMemo(() => toLocalDate(weddingDate), [weddingDate]);
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const mondayIndex = firstDay === 0 ? 6 : firstDay - 1;
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const days = [...Array(mondayIndex).fill(null), ...Array.from({ length: totalDays }, (_, i) => i + 1)];
+  return <div className="calendar-card">
+    <h3>Tháng {month + 1} / {year}</h3>
+    <div className="calendar-grid week"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+    <div className="calendar-grid days">
+      {days.map((day, index) => <span key={`${day}-${index}`} className={day === date.getDate() ? 'chosen' : ''}>{day || ''}</span>)}
+    </div>
+  </div>;
+}
+
+function addToCalendar(data) {
+  const date = String(data.weddingDate).slice(0, 10).replaceAll('-', '');
+  const start = data.receptionTime.slice(0, 5).replace(':', '') + '00';
+  const content = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:VEVENT',
+    `DTSTART:${date}T${start}`,
+    `DTEND:${date}T210000`,
+    `SUMMARY:Lễ cưới ${data.groomName} & ${data.brideName}`,
+    `LOCATION:${data.venue.name} - ${data.venue.address}`,
+    'END:VEVENT', 'END:VCALENDAR'
+  ].join('\r\n');
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/calendar' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'le-cuoi-hoang-long-bao-ngoc.ics'; link.click();
+  URL.revokeObjectURL(url);
+}
+
+function Reception({ data, onRsvp }) {
+  const date = toLocalDate(data.weddingDate);
+  return <section className="section reception-section">
+    <div className="burgundy-card reception-card">
+      <SectionTitle title="Thông tin tiệc cưới" light />
+      <h3>TIỆC CƯỚI SẼ DIỄN RA VÀO LÚC:</h3>
+      <div className="reception-time"><span>{data.receptionTime.slice(0, 5)}</span><span>THỨ BẢY</span></div>
+      <div className="date-core large"><b>{pad(date.getDate())}</b><i /><p><strong>THÁNG {pad(date.getMonth() + 1)}</strong><span>{date.getFullYear()}</span></p></div>
+      <p className="lunar">{data.lunarDate}</p>
+      <div className="service-times"><p><span>ĐÓN KHÁCH</span><b>{data.receptionGuestTime.slice(0, 5)}</b></p><p><span>KHAI TIỆC</span><b>{data.receptionTime.slice(0, 5)}</b></p></div>
+      <MonthCalendar weddingDate={data.weddingDate} />
+      <button className="text-button" onClick={() => addToCalendar(data)}><CalendarPlus size={16} /> Thêm vào lịch</button>
+      <button className="cream-button" onClick={onRsvp}>XÁC NHẬN THAM DỰ</button>
+    </div>
+    <Floral className="reception-floral" />
+  </section>;
+}
+
+function Venue({ data }) {
+  return <section className="section venue-section">
+    <SectionTitle eyebrow="TIỆC CƯỚI SẼ TỔ CHỨC TẠI" title={data.venue.name} />
+    <p>{data.venue.address}</p>
+    <div className="map-frame"><iframe title="Bản đồ địa điểm tiệc cưới" src={data.venue.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
+    <a className="direction-link" href={data.venue.directionsUrl} target="_blank" rel="noreferrer"><Navigation size={18} /> Chỉ đường</a>
+  </section>;
+}
+
+function DressAndTimeline({ data }) {
+  return <section className="section timeline-section">
+    <div className="dress-code">
+      <SectionTitle title="Dress code" />
+      <p>Trang phục dự tiệc</p>
+      <div>{data.dressColors.map((color) => <span key={color} style={{ background: color }} />)}</div>
+    </div>
+    <div className="burgundy-card timeline-card">
+      <SectionTitle title="Lịch trình ngày cưới" light />
+      <div className="timeline">
+        {data.schedule.map((item, index) => <div className="timeline-item" key={`${item.time_label}-${item.title}`}>
+          <strong>{item.time_label}</strong><i>{index < data.schedule.length - 1 && <span />}</i><p>{item.title}</p>
+        </div>)}
+      </div>
+      <Floral className="timeline-floral" />
+    </div>
+  </section>;
+}
+
+function Guestbook({ wishes, onSubmit }) {
+  const [form, setForm] = useState({ guestName: '', message: '' });
+  const [state, setState] = useState({ loading: false, message: '' });
+  const submit = async (event) => {
+    event.preventDefault(); setState({ loading: true, message: '' });
+    try {
+      await onSubmit(form); setForm({ guestName: '', message: '' }); setState({ loading: false, message: 'Lời chúc đã được gửi. Cảm ơn bạn!' });
+    } catch (error) { setState({ loading: false, message: error.message }); }
+  };
+  return <section className="section guestbook-section">
+    <form className="guestbook-form" onSubmit={submit}>
+      <SectionTitle title="Sổ lưu bút" />
+      <input value={form.guestName} onChange={(e) => setForm({ ...form, guestName: e.target.value })} placeholder="Nhập tên*" minLength="2" maxLength="100" required />
+      <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Nhập lời chúc*" minLength="3" maxLength="500" required />
+      <div className="guestbook-actions"><span><Sparkles size={20} /></span><button className="wine-button" disabled={state.loading}><Send size={16} />{state.loading ? 'ĐANG GỬI...' : 'GỬI LỜI CHÚC'}</button></div>
+      {state.message && <p className="form-message">{state.message}</p>}
+      <Floral className="guestbook-floral" />
+    </form>
+    <div className="wishes" aria-live="polite">
+      {wishes.map((wish) => <article key={wish.id}>
+        <div><strong>{wish.guestName}</strong><time>{new Date(wish.createdAt).toLocaleString('vi-VN')}</time></div>
+        <p>{wish.message}</p>
+      </article>)}
+    </div>
+  </section>;
+}
+
+function GiftSection({ onOpen }) {
+  return <section className="section gift-section">
+    <SectionTitle title="Hộp quà mừng" />
+    <button className="gift-envelope" onClick={onOpen} aria-label="Mở hộp quà mừng">
+      <span className="gift-card"><Gift size={38} /><b>Hỷ</b></span><i /><em><Heart size={22} /></em>
+    </button>
+    <button className="gift-open" onClick={onOpen}>Nhấn để mở</button>
+    <p>Sự hiện diện của quý khách là niềm vinh hạnh của gia đình chúng tôi!</p>
+    <small>♡ hoanglongbaongoc.com</small>
+  </section>;
+}
+
+function Modal({ title, onClose, children }) {
+  useEffect(() => {
+    const close = (event) => event.key === 'Escape' && onClose();
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [onClose]);
+  return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <button className="modal-close" onClick={onClose} aria-label="Đóng"><X /></button>
+      <SectionTitle title={title} />{children}
+    </div>
+  </div>;
+}
+
+function RsvpModal({ onClose, onSubmit }) {
+  const [form, setForm] = useState({ guestName: '', phone: '', attendance: 'attending', guestCount: 1, note: '' });
+  const [status, setStatus] = useState({ loading: false, message: '', done: false });
+  const submit = async (event) => {
+    event.preventDefault(); setStatus({ loading: true, message: '', done: false });
+    try { const response = await onSubmit(form); setStatus({ loading: false, message: response.message, done: true }); }
+    catch (error) { setStatus({ loading: false, message: error.message, done: false }); }
+  };
+  return <Modal title="Xác nhận tham dự" onClose={onClose}>
+    {status.done ? <div className="success-state"><span><Check /></span><p>{status.message}</p><button className="wine-button" onClick={onClose}>HOÀN TẤT</button></div> :
+      <form className="rsvp-form" onSubmit={submit}>
+        <label>Họ và tên<input required minLength="2" maxLength="100" value={form.guestName} onChange={(e) => setForm({ ...form, guestName: e.target.value })} /></label>
+        <label>Số điện thoại<input type="tel" maxLength="30" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+        <label>Bạn sẽ tham dự?<select value={form.attendance} onChange={(e) => setForm({ ...form, attendance: e.target.value })}><option value="attending">Tôi sẽ tham dự</option><option value="maybe">Tôi chưa chắc chắn</option><option value="not_attending">Rất tiếc, tôi không thể tham dự</option></select></label>
+        <label>Số khách đi cùng<input type="number" min="1" max="10" value={form.guestCount} onChange={(e) => setForm({ ...form, guestCount: Number(e.target.value) })} /></label>
+        <label>Lời nhắn<textarea maxLength="500" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></label>
+        {status.message && <p className="form-message error">{status.message}</p>}
+        <button className="wine-button wide" disabled={status.loading}>{status.loading ? 'ĐANG GỬI...' : 'GỬI XÁC NHẬN'}</button>
+      </form>}
+  </Modal>;
+}
+
+function GiftModal({ gift, onClose }) {
+  const [copied, setCopied] = useState('');
+  const copy = async (value, label) => { await navigator.clipboard.writeText(value); setCopied(label); setTimeout(() => setCopied(''), 1600); };
+  return <Modal title="Mừng cưới từ xa" onClose={onClose}>
+    <div className="bank-card">
+      <span>NGÂN HÀNG</span><strong>{gift.bankName}</strong>
+      <span>CHỦ TÀI KHOẢN</span><strong>{gift.accountName}</strong>
+      <span>SỐ TÀI KHOẢN</span><button onClick={() => copy(gift.accountNumber, 'account')}>{gift.accountNumber}{copied === 'account' ? <Check /> : <Copy />}</button>
+      <span>NỘI DUNG</span><button onClick={() => copy(gift.message, 'message')}>{gift.message}{copied === 'message' ? <Check /> : <Copy />}</button>
+    </div>
+    <p className="bank-note">Cảm ơn tình cảm và lời chúc của bạn dành cho cô dâu chú rể.</p>
+  </Modal>;
+}
+
+export default function App() {
+  const [data, setData] = useState(fallbackInvitation);
+  const [wishes, setWishes] = useState(fallbackWishes);
+  const [modal, setModal] = useState(null);
+  const [offline, setOffline] = useState(false);
+
+  useEffect(() => {
+    Promise.all([invitationApi.getInvitation(), invitationApi.getWishes()])
+      .then(([invitation, wishList]) => { setData(invitation); setWishes(wishList); })
+      .catch(() => setOffline(true));
+  }, []);
+
+  const createWish = async (payload) => {
+    const wish = await invitationApi.createWish(payload);
+    setWishes((current) => [wish, ...current]);
+  };
+
+  return <main>
+    {offline && <div className="offline-note">Đang hiển thị dữ liệu mẫu — hãy chạy API và MySQL để gửi RSVP/lời chúc.</div>}
+    <Hero data={data} />
+    <InvitationCard data={data} />
+    <Gallery data={data} />
+    <Reception data={data} onRsvp={() => setModal('rsvp')} />
+    <Venue data={data} />
+    <DressAndTimeline data={data} />
+    <Guestbook wishes={wishes} onSubmit={createWish} />
+    <GiftSection onOpen={() => setModal('gift')} />
+    {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} />}
+    {modal === 'gift' && <GiftModal gift={data.gift} onClose={() => setModal(null)} />}
+  </main>;
+}
