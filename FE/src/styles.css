@@ -111,13 +111,14 @@ main {
 .floral { position: absolute; pointer-events: none; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(58,18,15,.2)); }
 
 /* Hero */
-.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; }
+.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; background-color: #fbf5eb; background-image: url('/images/lion-dance-hero-bg.png'); background-position: center top; background-repeat: no-repeat; background-size: 100% auto; }
 .hero::after, .paper-section::after, .gallery-section::after, .venue-section::after, .timeline-section::after, .gift-section::after {
   content: ''; position: absolute; z-index: 0; left: 3%; right: 3%; bottom: -10px; height: 44%; opacity: .12;
   background: linear-gradient(130deg, transparent 30%, #7e654f 30% 30.3%, transparent 30.3% 33%, #7e654f 33% 33.3%, transparent 33.3%), linear-gradient(50deg, transparent 47%, #7e654f 47% 47.25%, transparent 47.25%);
   clip-path: polygon(0 100%, 0 67%, 9% 67%, 9% 53%, 14% 53%, 14% 44%, 19% 44%, 19% 33%, 25% 33%, 25% 50%, 35% 50%, 35% 42%, 44% 42%, 44% 18%, 50% 0, 56% 18%, 56% 42%, 66% 42%, 66% 52%, 76% 52%, 76% 34%, 82% 34%, 82% 50%, 90% 50%, 90% 68%, 100% 68%, 100% 100%);
 }
 .hero > * { position: relative; z-index: 1; }
+.hero::after { display: none; }
 .hero-topline { display: flex; justify-content: center; align-items: center; gap: 18px; font-family: Georgia, serif; font-size: 16px; letter-spacing: .32em; }
 .hero-topline span { width: 42px; height: 1px; background: currentColor; opacity: .45; }
 .envelope-scene { width: min(560px, 88vw); height: 560px; margin: 52px auto 18px; position: relative; }
