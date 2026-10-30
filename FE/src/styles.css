@@ -111,7 +111,7 @@ main {
 .floral { position: absolute; pointer-events: none; object-fit: contain; filter: drop-shadow(0 10px 14px rgba(58,18,15,.2)); }
 
 /* Hero */
-.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; background-color: #fbf5eb; background-image: url('/images/lion-dance-hero-bg.png'); background-position: center top; background-repeat: no-repeat; background-size: 100% auto; }
+.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; background-color: #fbf5eb; background-image: url('/images/lion-dance-full-body-hero-bg.png'); background-position: center -70px; background-repeat: no-repeat; background-size: 100% auto; }
 .hero::after, .paper-section::after, .gallery-section::after, .venue-section::after, .timeline-section::after, .gift-section::after {
   content: ''; position: absolute; z-index: 0; left: 3%; right: 3%; bottom: -10px; height: 44%; opacity: .12;
   background: linear-gradient(130deg, transparent 30%, #7e654f 30% 30.3%, transparent 30.3% 33%, #7e654f 33% 33.3%, transparent 33.3%), linear-gradient(50deg, transparent 47%, #7e654f 47% 47.25%, transparent 47.25%);
@@ -328,7 +328,7 @@ main {
   .entry-hint { bottom: 14px; }
   .entry-petal:nth-child(n+13) { display: none; }
   .section { padding-left: 16px; padding-right: 16px; }
-  .hero { min-height: 820px; padding-top: 45px; }
+  .hero { min-height: 820px; padding-top: 45px; background-position: center -42px; }
   .hero-topline { font-size: 13px; letter-spacing: .2em; }
   .envelope-scene { height: 470px; margin-top: 38px; }
   .photo-card { left: 24%; width: 55%; height: 69%; }
@@ -371,7 +371,7 @@ main {
   .entry-seal { width: 56px; height: 56px; }
   .entry-names { font-size: 34px; }
   .entry-invite { margin-top: 20px; }
-  .hero { min-height: 760px; }
+  .hero { min-height: 760px; background-position: center -28px; }
   .envelope-scene { width: 107vw; height: 430px; margin-left: -9vw; }
   .hero-names { font-size: 48px; }
   .couple-names h3 { font-size: 39px; }
