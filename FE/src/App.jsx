@@ -207,11 +207,17 @@ function Reception({ data, onRsvp }) {
 }
 
 function Venue({ data }) {
+  const locations = [
+    { key: 'groom-home', label: 'Nhà chú rể', ...data.venue.groomHome },
+    { key: 'bride-home', label: 'Nhà cô dâu', ...data.venue.brideHome }
+  ];
   return <section id="venue" className="section venue-section">
-    <SectionTitle eyebrow="TIỆC CƯỚI SẼ TỔ CHỨC TẠI" title={data.venue.name} />
-    <p>{data.venue.address}</p>
-    <div className="map-frame"><iframe title="Bản đồ địa điểm tiệc cưới" src={data.venue.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
-    <a className="direction-link" href={data.venue.directionsUrl} target="_blank" rel="noreferrer"><Navigation size={18} /> Chỉ đường</a>
+    <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title="Địa điểm tư gia" />
+    <div className="venue-grid">{locations.map((location) => <article className="location-card" key={location.key}>
+      <div className="location-heading"><span>{location.label}</span><h3>{location.name}</h3><p>{location.address}</p></div>
+      {location.mapEmbedUrl ? <div className="location-map"><iframe title={`Bản đồ ${location.label.toLowerCase()}`} src={location.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div> : <div className="location-map empty"><MapPin /><span>Chưa thêm bản đồ</span></div>}
+      {location.directionsUrl && <a className="direction-link" href={location.directionsUrl} target="_blank" rel="noreferrer"><Navigation size={17} /> Chỉ đường</a>}
+    </article>)}</div>
   </section>;
 }
 
@@ -360,6 +366,7 @@ export default function App() {
   </main>;
 
   return <main>
+    {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
     {offline && <div className="offline-note">Đang hiển thị dữ liệu mẫu — hãy chạy API và MySQL để gửi RSVP/lời chúc.</div>}
     <Hero data={data} />
     <InvitationCard data={data} />

@@ -30,7 +30,7 @@ Mở `http://localhost:5173/admin` và đăng nhập bằng hai giá trị `ADMI
 Trang quản trị cho phép:
 
 - Sửa tên cô dâu/chú rể, ngày giờ, ảnh bìa và trạng thái xuất bản.
-- Sửa thông tin hai gia đình, địa điểm, Google Maps và chỉ đường.
+- Sửa riêng nhà chú rể, nhà cô dâu, Google Maps và link chỉ đường của từng nơi.
 - Thêm, xóa, sắp xếp ảnh album và lịch trình ngày cưới.
 - Tải trực tiếp ảnh JPG, PNG, WEBP hoặc GIF (tối đa 8 MB) cho ảnh bìa và album; file được lưu trong `BE/uploads`.
 - Chỉnh màu dress code và thông tin tài khoản mừng cưới.
@@ -40,7 +40,7 @@ Phiên đăng nhập tồn tại 8 giờ và được ký bằng `ADMIN_SESSION_
 
 ## Dữ liệu
 
-Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu. Có thể chạy lại an toàn. Các bảng chính:
+Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu. Có thể chạy lại an toàn. Lệnh này không ghi đè nội dung đã chỉnh trong trang admin, đồng thời tự dọn bản ghi seed trùng và tạo ràng buộc để dữ liệu không bị nhân đôi. Các bảng chính:
 
 - `invitations`: thông tin thiệp, ngày cưới, địa điểm, dress code và thông tin quà mừng.
 - `families`: thông tin hai gia đình.

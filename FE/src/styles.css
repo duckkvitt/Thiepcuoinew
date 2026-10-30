@@ -37,6 +37,7 @@ main {
 .invitation-unavailable p { margin: 0; font: 14px/1.8 Georgia, serif; }
 
 .offline-note { position: fixed; z-index: 40; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(90%, 620px); padding: 11px 16px; color: #fff; background: rgba(62,8,14,.92); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; text-align: center; font-size: 12px; box-shadow: 0 8px 25px rgba(0,0,0,.18); }
+.preview-ribbon { position: fixed; z-index: 50; top: 10px; left: 50%; transform: translateX(-50%); padding: 7px 13px; color: #fff; background: rgba(62,8,14,.9); border: 1px solid rgba(255,255,255,.4); border-radius: 999px; box-shadow: 0 5px 18px rgba(40,8,10,.18); text-transform: uppercase; letter-spacing: .11em; font-size: 8px; font-weight: 600; pointer-events: none; }
 .section { position: relative; padding: 86px 24px; }
 .section-title { text-align: center; text-transform: uppercase; margin-bottom: 34px; }
 .section-title span { display: block; margin-bottom: 8px; letter-spacing: .12em; font-size: 13px; font-weight: 600; }
@@ -151,12 +152,17 @@ main {
 
 /* Venue */
 .venue-section { padding-top: 45px; padding-bottom: 90px; text-align: center; }
-.venue-section .section-title { margin-bottom: 8px; }
-.venue-section .section-title h2 { font-size: 22px; }
-.venue-section > p { position: relative; z-index: 1; width: min(630px, 90%); margin: 0 auto 25px; font: 14px/1.6 Georgia, serif; }
-.map-frame { position: relative; z-index: 1; width: min(650px, 94%); height: 410px; margin: auto; padding: 9px; background: white; border-radius: 18px; box-shadow: 0 12px 30px rgba(52,31,18,.12); overflow: hidden; }
-.map-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 12px; }
-.direction-link { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 9px; margin-top: 24px; color: var(--wine); font: 600 15px Georgia, serif; text-decoration: none; }
+.venue-section .section-title { margin-bottom: 30px; }
+.venue-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; width: min(760px, 100%); margin: auto; }
+.location-card { display: flex; flex-direction: column; min-width: 0; padding: 10px 10px 20px; background: rgba(255,255,255,.58); border: 1px solid rgba(91,17,24,.1); border-radius: 17px; box-shadow: 0 12px 28px rgba(52,31,18,.1); overflow: hidden; }
+.location-heading { min-height: 150px; padding: 18px 10px 16px; }
+.location-heading > span { display: block; margin-bottom: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: .14em; font-size: 9px; font-weight: 600; }
+.location-heading h3 { margin: 0; font: 600 23px/1.15 'Cormorant Garamond', Georgia, serif; }
+.location-heading p { margin: 10px 0 0; font: 12px/1.55 Georgia, serif; }
+.location-map { display: grid; place-items: center; width: 100%; height: 210px; color: rgba(91,17,24,.5); background: #eee7dd; border-radius: 11px; overflow: hidden; }
+.location-map iframe { width: 100%; height: 100%; border: 0; }
+.location-map.empty { gap: 6px; align-content: center; font: 11px Georgia, serif; }
+.direction-link { position: relative; z-index: 1; display: inline-flex; align-items: center; align-self: center; gap: 8px; margin-top: 18px; padding-bottom: 3px; color: var(--wine); border-bottom: 1px solid rgba(91,17,24,.45); font: 600 12px Georgia, serif; text-decoration: none; }
 
 /* Dress code and timeline */
 .timeline-section { padding-top: 65px; padding-bottom: 90px; }
@@ -252,6 +258,9 @@ main {
   .reception-card > h3 { font-size: 18px; }
   .calendar-card { padding: 20px 13px; }
   .reception-floral { left: -8%; top: 25%; width: 33%; opacity: .7; }
+  .venue-grid { grid-template-columns: 1fr; width: min(470px, 100%); gap: 18px; }
+  .location-heading { min-height: 0; }
+  .location-map { height: 260px; }
   .timeline-card { padding: 38px 16px; }
   .timeline-floral { right: -18%; top: 18%; width: 48%; opacity: .45; }
   .guestbook-form { padding: 45px 22px 35px; }

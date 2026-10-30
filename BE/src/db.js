@@ -34,11 +34,16 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
   if (!rows.length) return null;
   const invitation = rows[0];
 
-  const [[families], [gallery], [schedule]] = await Promise.all([
+  const [[families], [gallery], [schedule], [locations]] = await Promise.all([
     pool.query('SELECT side, parent_label, father_name, mother_name, address FROM families WHERE invitation_id = ? ORDER BY id', [invitation.id]),
     pool.query('SELECT id, image_url, alt_text FROM gallery_images WHERE invitation_id = ? ORDER BY display_order, id', [invitation.id]),
-    pool.query('SELECT time_label, title, icon FROM wedding_schedule WHERE invitation_id = ? ORDER BY display_order, id', [invitation.id])
+    pool.query('SELECT time_label, title, icon FROM wedding_schedule WHERE invitation_id = ? ORDER BY display_order, id', [invitation.id]),
+    pool.query('SELECT location_type, name, address, map_embed_url, directions_url FROM wedding_locations WHERE invitation_id = ? ORDER BY display_order, id', [invitation.id])
   ]);
+  const groomFamily = families.find((item) => item.side === 'groom');
+  const brideFamily = families.find((item) => item.side === 'bride');
+  const groomHome = locations.find((item) => item.location_type === 'groom_home');
+  const brideHome = locations.find((item) => item.location_type === 'bride_home');
 
   return {
     id: invitation.id,
@@ -55,7 +60,19 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
       name: invitation.venue_name,
       address: invitation.venue_address,
       mapEmbedUrl: invitation.map_embed_url,
-      directionsUrl: invitation.directions_url
+      directionsUrl: invitation.directions_url,
+      groomHome: {
+        name: groomHome?.name || 'Tư gia nhà trai',
+        address: groomHome?.address || groomFamily?.address || '',
+        mapEmbedUrl: groomHome?.map_embed_url || '',
+        directionsUrl: groomHome?.directions_url || ''
+      },
+      brideHome: {
+        name: brideHome?.name || 'Tư gia nhà gái',
+        address: brideHome?.address || brideFamily?.address || '',
+        mapEmbedUrl: brideHome?.map_embed_url || '',
+        directionsUrl: brideHome?.directions_url || ''
+      }
     },
     heroImage: invitation.hero_image,
     dressColors: parseJson(invitation.dress_colors, []),

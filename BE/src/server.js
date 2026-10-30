@@ -122,12 +122,15 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
   const gallery = Array.isArray(data.gallery) ? data.gallery : [];
   const schedule = Array.isArray(data.schedule) ? data.schedule : [];
   const dressColors = Array.isArray(data.dressColors) ? data.dressColors.map((item) => clean(item, 20)).filter(Boolean) : [];
+  const groomHome = data.venue?.groomHome || {};
+  const brideHome = data.venue?.brideHome || {};
   const ceremonyTime = normalizeTime(data.ceremonyTime);
   const receptionGuestTime = normalizeTime(data.receptionGuestTime);
   const receptionTime = normalizeTime(data.receptionTime);
 
   if (!clean(data.groomName, 120) || !clean(data.brideName, 120) || !/^\d{4}-\d{2}-\d{2}$/.test(clean(data.weddingDate, 10)) ||
       !ceremonyTime || !receptionGuestTime || !receptionTime || !clean(data.venue?.name, 200) || !clean(data.venue?.address, 500) ||
+      !clean(groomHome.name, 200) || !clean(groomHome.address, 500) || !clean(brideHome.name, 200) || !clean(brideHome.address, 500) ||
       families.length !== 2 || gallery.length < 1 || gallery.length > 30 || schedule.length < 1 || schedule.length > 30 ||
       dressColors.length < 1 || dressColors.length > 10) {
     return res.status(400).json({ message: 'Dữ liệu thiệp chưa đầy đủ hoặc không hợp lệ.' });
@@ -166,6 +169,18 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
       await connection.query(
         `INSERT INTO families (invitation_id, side, parent_label, father_name, mother_name, address) VALUES (?, ?, ?, ?, ?, ?)`,
         [invitation.id, side, clean(family.parent_label, 50), clean(family.father_name, 120), clean(family.mother_name, 120), clean(family.address, 255)]
+      );
+    }
+
+    await connection.query('DELETE FROM wedding_locations WHERE invitation_id = ?', [invitation.id]);
+    for (const [index, location] of [
+      { type: 'groom_home', ...groomHome },
+      { type: 'bride_home', ...brideHome }
+    ].entries()) {
+      await connection.query(
+        `INSERT INTO wedding_locations (invitation_id, location_type, name, address, map_embed_url, directions_url, display_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [invitation.id, location.type, clean(location.name, 200), clean(location.address, 500), clean(location.mapEmbedUrl, 2000), clean(location.directionsUrl, 2000), index + 1]
       );
     }
 

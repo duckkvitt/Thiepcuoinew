@@ -7,7 +7,17 @@ export const fallbackInvitation = {
     name: 'Trung Tâm Hội Nghị White Palace',
     address: '194 Hoàng Văn Thụ, Phường 9, Quận Phú Nhuận, TP. Hồ Chí Minh',
     mapEmbedUrl: 'https://www.google.com/maps?q=White+Palace+Hoang+Van+Thu&output=embed',
-    directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=White+Palace+Hoang+Van+Thu'
+    directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=White+Palace+Hoang+Van+Thu',
+    groomHome: {
+      name: 'Tư gia nhà trai', address: 'Quận 1, TP. Hồ Chí Minh',
+      mapEmbedUrl: 'https://www.google.com/maps?q=Quan+1+Ho+Chi+Minh&output=embed',
+      directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=Quan+1+Ho+Chi+Minh'
+    },
+    brideHome: {
+      name: 'Tư gia nhà gái', address: 'Quận 3, TP. Hồ Chí Minh',
+      mapEmbedUrl: 'https://www.google.com/maps?q=Quan+3+Ho+Chi+Minh&output=embed',
+      directionsUrl: 'https://www.google.com/maps/dir/?api=1&destination=Quan+3+Ho+Chi+Minh'
+    }
   },
   dressColors: ['#5b1118', '#963b43', '#d6aa46', '#eee5d8'],
   gift: { bankName: 'Vietcombank', accountName: 'DANG HOANG LONG', accountNumber: '0123456789', message: 'HLBN 03012026' },

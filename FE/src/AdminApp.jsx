@@ -6,6 +6,7 @@ import {
   Trash2, UploadCloud, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
+import { formatVietnameseLunarDate } from './lunarDate.js';
 import './admin.css';
 
 const tokenKey = 'wedding-admin-token';
@@ -151,7 +152,16 @@ export default function AdminApp() {
   };
 
   const updateRoot = (key, value) => setData((current) => ({ ...current, [key]: value }));
+  const updateWeddingDate = (value) => setData((current) => ({
+    ...current,
+    weddingDate: value,
+    lunarDate: formatVietnameseLunarDate(value)
+  }));
   const updateGroup = (group, key, value) => setData((current) => ({ ...current, [group]: { ...current[group], [key]: value } }));
+  const updateVenueLocation = (location, key, value) => setData((current) => ({
+    ...current,
+    venue: { ...current.venue, [location]: { ...current.venue[location], [key]: value } }
+  }));
   const updateItem = (group, index, key, value) => setData((current) => ({
     ...current,
     [group]: current[group].map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item)
@@ -256,11 +266,11 @@ export default function AdminApp() {
           <Field label="Tên chú rể"><input value={data.groomName} onChange={(event) => updateRoot('groomName', event.target.value)} /></Field>
           <Field label="Tên cô dâu"><input value={data.brideName} onChange={(event) => updateRoot('brideName', event.target.value)} /></Field>
           <Field label="Dòng tiêu đề" wide><input value={data.tagline || ''} onChange={(event) => updateRoot('tagline', event.target.value)} /></Field>
-          <Field label="Ngày cưới"><input type="date" value={String(data.weddingDate).slice(0, 10)} onChange={(event) => updateRoot('weddingDate', event.target.value)} /></Field>
+          <Field label="Ngày cưới"><input type="date" value={String(data.weddingDate).slice(0, 10)} onChange={(event) => updateWeddingDate(event.target.value)} /></Field>
           <Field label="Giờ làm lễ"><input type="time" value={String(data.ceremonyTime).slice(0, 5)} onChange={(event) => updateRoot('ceremonyTime', event.target.value)} /></Field>
           <Field label="Giờ đón khách"><input type="time" value={String(data.receptionGuestTime).slice(0, 5)} onChange={(event) => updateRoot('receptionGuestTime', event.target.value)} /></Field>
           <Field label="Giờ khai tiệc"><input type="time" value={String(data.receptionTime).slice(0, 5)} onChange={(event) => updateRoot('receptionTime', event.target.value)} /></Field>
-          <Field label="Ngày âm lịch" wide><input value={data.lunarDate || ''} onChange={(event) => updateRoot('lunarDate', event.target.value)} /></Field>
+          <Field label="Ngày âm lịch" wide><input value={data.lunarDate || ''} onChange={(event) => updateRoot('lunarDate', event.target.value)} /><small className="admin-field-hint">Tự động tính theo âm lịch Việt Nam (UTC+7), có xử lý tháng nhuận và Can Chi. Bạn vẫn có thể chỉnh tay.</small></Field>
           <Field label="Ảnh bìa" wide><div className="admin-image-control">
             <input value={data.heroImage || ''} onChange={(event) => updateRoot('heroImage', event.target.value)} placeholder="Đường dẫn hoặc URL ảnh" />
             <label className={`admin-upload${uploading === 'hero' ? ' loading' : ''}`}><UploadCloud size={17} />{uploading === 'hero' ? 'Đang tải...' : 'Chọn ảnh từ máy'}
@@ -281,12 +291,20 @@ export default function AdminApp() {
         </article>)}</div>
       </Panel>
 
-      <Panel id="venue" eyebrow="Bản đồ & chỉ đường" title="Địa điểm tổ chức" previewSection="venue" onPreview={showPreviewSection}>
-        <div className="admin-form-grid">
-          <Field label="Tên địa điểm" wide><input value={data.venue.name || ''} onChange={(event) => updateGroup('venue', 'name', event.target.value)} /></Field>
-          <Field label="Địa chỉ" wide><textarea value={data.venue.address || ''} onChange={(event) => updateGroup('venue', 'address', event.target.value)} /></Field>
-          <Field label="URL nhúng Google Maps" wide><input value={data.venue.mapEmbedUrl || ''} onChange={(event) => updateGroup('venue', 'mapEmbedUrl', event.target.value)} /></Field>
-          <Field label="URL chỉ đường" wide><input value={data.venue.directionsUrl || ''} onChange={(event) => updateGroup('venue', 'directionsUrl', event.target.value)} /></Field>
+      <Panel id="venue" eyebrow="Bản đồ & chỉ đường" title="Địa điểm nhà trai & nhà gái" previewSection="venue" onPreview={showPreviewSection}>
+        <div className="admin-location-editors">
+          <article><h3><span>01</span> Nhà chú rể</h3><div className="admin-form-grid">
+            <Field label="Tên địa điểm" wide><input value={data.venue.groomHome?.name || ''} onChange={(event) => updateVenueLocation('groomHome', 'name', event.target.value)} /></Field>
+            <Field label="Địa chỉ" wide><textarea value={data.venue.groomHome?.address || ''} onChange={(event) => updateVenueLocation('groomHome', 'address', event.target.value)} /></Field>
+            <Field label="URL nhúng Google Maps" wide><input value={data.venue.groomHome?.mapEmbedUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'mapEmbedUrl', event.target.value)} /></Field>
+            <Field label="URL chỉ đường" wide><input value={data.venue.groomHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'directionsUrl', event.target.value)} /></Field>
+          </div></article>
+          <article><h3><span>02</span> Nhà cô dâu</h3><div className="admin-form-grid">
+            <Field label="Tên địa điểm" wide><input value={data.venue.brideHome?.name || ''} onChange={(event) => updateVenueLocation('brideHome', 'name', event.target.value)} /></Field>
+            <Field label="Địa chỉ" wide><textarea value={data.venue.brideHome?.address || ''} onChange={(event) => updateVenueLocation('brideHome', 'address', event.target.value)} /></Field>
+            <Field label="URL nhúng Google Maps" wide><input value={data.venue.brideHome?.mapEmbedUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'mapEmbedUrl', event.target.value)} /></Field>
+            <Field label="URL chỉ đường" wide><input value={data.venue.brideHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'directionsUrl', event.target.value)} /></Field>
+          </div></article>
         </div>
       </Panel>
 

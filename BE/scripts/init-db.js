@@ -21,6 +21,28 @@ const connection = await mysql.createConnection({
 
 try {
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE \`${database}\`; ${sql}`);
+  await connection.query(`
+    DELETE older FROM families older
+    JOIN families newer ON older.invitation_id = newer.invitation_id AND older.side = newer.side AND older.id < newer.id;
+    DELETE older FROM gallery_images older
+    JOIN gallery_images newer ON older.invitation_id = newer.invitation_id AND older.display_order = newer.display_order AND older.id < newer.id;
+    DELETE older FROM wedding_schedule older
+    JOIN wedding_schedule newer ON older.invitation_id = newer.invitation_id AND older.display_order = newer.display_order AND older.id < newer.id;
+  `);
+
+  const ensureUniqueIndex = async (table, indexName, columns) => {
+    const [[row]] = await connection.query(
+      `SELECT COUNT(*) AS count FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? AND index_name = ?`,
+      [database, table, indexName]
+    );
+    if (!Number(row.count)) {
+      await connection.query(`ALTER TABLE \`${table}\` ADD UNIQUE KEY \`${indexName}\` (${columns.map((column) => `\`${column}\``).join(', ')})`);
+    }
+  };
+
+  await ensureUniqueIndex('families', 'uq_families_invitation_side', ['invitation_id', 'side']);
+  await ensureUniqueIndex('gallery_images', 'uq_gallery_invitation_order', ['invitation_id', 'display_order']);
+  await ensureUniqueIndex('wedding_schedule', 'uq_schedule_invitation_order', ['invitation_id', 'display_order']);
   console.log(`Database ${database} is ready.`);
 } finally {
   await connection.end();
