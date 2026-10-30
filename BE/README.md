@@ -1,4 +1,4 @@
-# Thiệp cưới Hoàng Long & Bảo Ngọc
+# Thiệp cưới Tiến Anh & Hải Yến
 
 Website gồm hai phần:
 
@@ -30,13 +30,16 @@ Mở `http://localhost:5173/admin` và đăng nhập bằng hai giá trị `ADMI
 Trang quản trị cho phép:
 
 - Sửa tên cô dâu/chú rể, ngày giờ, ảnh bìa và trạng thái xuất bản.
-- Sửa riêng nhà chú rể, nhà cô dâu, Google Maps và link chỉ đường của từng nơi.
+- Tên cô dâu/chú rể hiển thị đúng nguyên văn, không tự thêm họ; có thể chỉnh tiêu đề, lời báo tin, vai trò và nơi cử hành.
+- Sửa riêng nhà chú rể và nhà cô dâu; mỗi nơi chỉ cần một URL Google Maps dùng chung cho bản đồ nhúng và nút chỉ đường (hỗ trợ link `maps.app.goo.gl`).
 - Thêm, xóa, sắp xếp ảnh album và lịch trình ngày cưới.
 - Tải trực tiếp ảnh JPG, PNG, WEBP hoặc GIF (tối đa 8 MB) cho ảnh bìa và album; file được lưu trong `BE/uploads`.
-- Chỉnh màu dress code và thông tin tài khoản mừng cưới.
-- Xem RSVP, tổng số khách và ẩn/hiện lời chúc.
+- Chỉnh màu dress code, hai tài khoản mừng cưới riêng cho chú rể/cô dâu và upload ảnh QR cho từng tài khoản.
+- Xem RSVP, tổng số khách và ẩn/hiện/xóa lời chúc.
 
-Phiên đăng nhập tồn tại 8 giờ và được ký bằng `ADMIN_SESSION_SECRET`. Hãy đổi cả hai giá trị quản trị trong `.env` trước khi triển khai công khai.
+Tài khoản được tạo trong bảng `admins` khi chạy `npm run db:init`; mật khẩu được lưu bằng bcrypt, không lưu dạng chữ thường trong MySQL. Phiên đăng nhập tồn tại 8 giờ và được ký bằng `ADMIN_SESSION_SECRET`. Hãy đổi các giá trị quản trị trong `.env` trước khi khởi tạo/triển khai công khai. `ADMIN_API_KEY` có thể dùng cho công cụ quản trị qua header `x-api-key` hoặc Bearer token, không đưa key này vào frontend công khai.
+
+Backend có security headers, giới hạn số lần đăng nhập/gửi form và kiểm tra schema cho đăng nhập, RSVP, lời chúc.
 
 ## Dữ liệu
 
@@ -48,6 +51,7 @@ Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu.
 - `wedding_schedule`: lịch trình ngày cưới.
 - `wishes`: lời chúc từ khách mời.
 - `rsvps`: xác nhận tham dự.
+- `admins`: tài khoản quản trị với mật khẩu bcrypt.
 
 ## API chính
 
@@ -60,6 +64,7 @@ Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu.
 - `GET|PUT /api/admin/invitations/hoang-long-bao-ngoc`
 - `GET /api/admin/invitations/hoang-long-bao-ngoc/submissions`
 - `PATCH /api/admin/invitations/hoang-long-bao-ngoc/wishes/:id`
+- `DELETE /api/admin/invitations/hoang-long-bao-ngoc/wishes/:id`
 
 Giao diện vẫn hiển thị dữ liệu mẫu nếu API chưa chạy, đồng thời hiện thông báo ở cuối trang. Muốn gửi lời chúc hoặc RSVP thì backend và MySQL phải hoạt động.
 

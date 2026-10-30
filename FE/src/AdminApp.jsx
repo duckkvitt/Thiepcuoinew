@@ -10,6 +10,17 @@ import { formatVietnameseLunarDate } from './lunarDate.js';
 import './admin.css';
 
 const tokenKey = 'wedding-admin-token';
+const normalizeInvitationGift = (invitation) => {
+  const gift = invitation.gift || {};
+  const account = (source, label) => ({ label, bankName: '', accountName: '', accountNumber: '', message: '', qrImage: '', ...(source || {}) });
+  return {
+    ...invitation,
+    gift: {
+      groom: account(gift.groom || gift, 'Chú rể'),
+      bride: account(gift.bride, 'Cô dâu')
+    }
+  };
+};
 const sections = [
   ['overview', <LayoutDashboard size={18} />, 'Tổng quan'],
   ['couple', <Settings size={18} />, 'Thông tin thiệp'],
@@ -97,7 +108,7 @@ export default function AdminApp() {
     if (!token) return;
     setLoading(true);
     Promise.all([adminApi.getInvitation(token), adminApi.getSubmissions(token)])
-      .then(([invitation, response]) => { setData(invitation); setSubmissions(response); })
+      .then(([invitation, response]) => { setData(normalizeInvitationGift(invitation)); setSubmissions(response); })
       .catch((error) => { if (error.status === 401) logout(); else setNotice(error.message); })
       .finally(() => setLoading(false));
   }, [token]);
@@ -157,7 +168,10 @@ export default function AdminApp() {
     weddingDate: value,
     lunarDate: formatVietnameseLunarDate(value)
   }));
-  const updateGroup = (group, key, value) => setData((current) => ({ ...current, [group]: { ...current[group], [key]: value } }));
+  const updateGiftAccount = (owner, key, value) => setData((current) => ({
+    ...current,
+    gift: { ...current.gift, [owner]: { ...current.gift[owner], [key]: value } }
+  }));
   const updateVenueLocation = (location, key, value) => setData((current) => ({
     ...current,
     venue: { ...current.venue, [location]: { ...current.venue[location], [key]: value } }
@@ -179,7 +193,7 @@ export default function AdminApp() {
     setSaving(true); setNotice('');
     try {
       const response = await adminApi.updateInvitation(token, data);
-      setData(response.invitation);
+      setData(normalizeInvitationGift(response.invitation));
       setNotice(response.message);
     } catch (error) {
       if (error.status === 401) logout();
@@ -215,6 +229,15 @@ export default function AdminApp() {
         ...current,
         wishes: current.wishes.map((item) => item.id === wish.id ? { ...item, isVisible: !item.isVisible } : item)
       }));
+    } catch (error) { setNotice(error.message); }
+  };
+
+  const deleteWish = async (wish) => {
+    if (!window.confirm(`Xóa lời chúc của ${wish.guestName}?`)) return;
+    try {
+      await adminApi.deleteWish(token, wish.id);
+      setSubmissions((current) => ({ ...current, wishes: current.wishes.filter((item) => item.id !== wish.id) }));
+      setNotice('Đã xóa lời chúc.');
     } catch (error) { setNotice(error.message); }
   };
 
@@ -265,12 +288,18 @@ export default function AdminApp() {
         <div className="admin-form-grid">
           <Field label="Tên chú rể"><input value={data.groomName} onChange={(event) => updateRoot('groomName', event.target.value)} /></Field>
           <Field label="Tên cô dâu"><input value={data.brideName} onChange={(event) => updateRoot('brideName', event.target.value)} /></Field>
+          <Field label="Vai trò chú rể"><input value={data.groomRole || ''} onChange={(event) => updateRoot('groomRole', event.target.value)} placeholder="Ví dụ: TRƯỞNG NAM" /></Field>
+          <Field label="Vai trò cô dâu"><input value={data.brideRole || ''} onChange={(event) => updateRoot('brideRole', event.target.value)} placeholder="Ví dụ: ÚT NỮ" /></Field>
           <Field label="Dòng tiêu đề" wide><input value={data.tagline || ''} onChange={(event) => updateRoot('tagline', event.target.value)} /></Field>
+          <Field label="Tiêu đề khung thông tin" wide><input value={data.invitationHeading || ''} onChange={(event) => updateRoot('invitationHeading', event.target.value)} placeholder="Thông tin lễ cưới" /></Field>
+          <Field label="Lời báo tin" wide><textarea value={data.announcementText || ''} onChange={(event) => updateRoot('announcementText', event.target.value)} placeholder={'TRÂN TRỌNG BÁO TIN\nLỄ THÀNH HÔN CỦA CON CHÚNG TÔI'} /></Field>
           <Field label="Ngày cưới"><input type="date" value={String(data.weddingDate).slice(0, 10)} onChange={(event) => updateWeddingDate(event.target.value)} /></Field>
           <Field label="Giờ làm lễ"><input type="time" value={String(data.ceremonyTime).slice(0, 5)} onChange={(event) => updateRoot('ceremonyTime', event.target.value)} /></Field>
           <Field label="Giờ đón khách"><input type="time" value={String(data.receptionGuestTime).slice(0, 5)} onChange={(event) => updateRoot('receptionGuestTime', event.target.value)} /></Field>
           <Field label="Giờ khai tiệc"><input type="time" value={String(data.receptionTime).slice(0, 5)} onChange={(event) => updateRoot('receptionTime', event.target.value)} /></Field>
           <Field label="Ngày âm lịch" wide><input value={data.lunarDate || ''} onChange={(event) => updateRoot('lunarDate', event.target.value)} /><small className="admin-field-hint">Tự động tính theo âm lịch Việt Nam (UTC+7), có xử lý tháng nhuận và Can Chi. Bạn vẫn có thể chỉnh tay.</small></Field>
+          <Field label="Dòng giới thiệu nơi cử hành" wide><input value={data.ceremonyIntro || ''} onChange={(event) => updateRoot('ceremonyIntro', event.target.value)} /></Field>
+          <Field label="Nơi cử hành" wide><input value={data.ceremonyVenue || ''} onChange={(event) => updateRoot('ceremonyVenue', event.target.value)} placeholder="TƯ GIA" /></Field>
           <Field label="Ảnh bìa" wide><div className="admin-image-control">
             <input value={data.heroImage || ''} onChange={(event) => updateRoot('heroImage', event.target.value)} placeholder="Đường dẫn hoặc URL ảnh" />
             <label className={`admin-upload${uploading === 'hero' ? ' loading' : ''}`}><UploadCloud size={17} />{uploading === 'hero' ? 'Đang tải...' : 'Chọn ảnh từ máy'}
@@ -296,14 +325,12 @@ export default function AdminApp() {
           <article><h3><span>01</span> Nhà chú rể</h3><div className="admin-form-grid">
             <Field label="Tên địa điểm" wide><input value={data.venue.groomHome?.name || ''} onChange={(event) => updateVenueLocation('groomHome', 'name', event.target.value)} /></Field>
             <Field label="Địa chỉ" wide><textarea value={data.venue.groomHome?.address || ''} onChange={(event) => updateVenueLocation('groomHome', 'address', event.target.value)} /></Field>
-            <Field label="URL nhúng Google Maps" wide><input value={data.venue.groomHome?.mapEmbedUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'mapEmbedUrl', event.target.value)} /></Field>
-            <Field label="URL chỉ đường" wide><input value={data.venue.groomHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'directionsUrl', event.target.value)} /></Field>
+            <Field label="URL Google Maps" wide><input value={data.venue.groomHome?.mapUrl || data.venue.groomHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'mapUrl', event.target.value)} placeholder="Dán link Google Maps hoặc maps.app.goo.gl" /><small className="admin-field-hint">Chỉ cần nhập một lần. Hệ thống tự dùng cho bản đồ nhúng và nút chỉ đường.</small></Field>
           </div></article>
           <article><h3><span>02</span> Nhà cô dâu</h3><div className="admin-form-grid">
             <Field label="Tên địa điểm" wide><input value={data.venue.brideHome?.name || ''} onChange={(event) => updateVenueLocation('brideHome', 'name', event.target.value)} /></Field>
             <Field label="Địa chỉ" wide><textarea value={data.venue.brideHome?.address || ''} onChange={(event) => updateVenueLocation('brideHome', 'address', event.target.value)} /></Field>
-            <Field label="URL nhúng Google Maps" wide><input value={data.venue.brideHome?.mapEmbedUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'mapEmbedUrl', event.target.value)} /></Field>
-            <Field label="URL chỉ đường" wide><input value={data.venue.brideHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'directionsUrl', event.target.value)} /></Field>
+            <Field label="URL Google Maps" wide><input value={data.venue.brideHome?.mapUrl || data.venue.brideHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'mapUrl', event.target.value)} placeholder="Dán link Google Maps hoặc maps.app.goo.gl" /><small className="admin-field-hint">Chỉ cần nhập một lần. Hệ thống tự dùng cho bản đồ nhúng và nút chỉ đường.</small></Field>
           </div></article>
         </div>
       </Panel>
@@ -340,18 +367,33 @@ export default function AdminApp() {
         <div className="admin-colors">{data.dressColors.map((color, index) => <label key={`${color}-${index}`}><input type="color" value={color} onChange={(event) => updateRoot('dressColors', data.dressColors.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /><span>{color}</span><button type="button" onClick={() => updateRoot('dressColors', data.dressColors.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={14} /></button></label>)}
           <button type="button" className="admin-add-color" onClick={() => updateRoot('dressColors', [...data.dressColors, '#d6aa46'])}><Plus size={17} /> Thêm màu</button>
         </div>
-        <div className="admin-form-grid admin-gift-form">
-          <Field label="Ngân hàng"><input value={data.gift.bankName || ''} onChange={(event) => updateGroup('gift', 'bankName', event.target.value)} /></Field>
-          <Field label="Chủ tài khoản"><input value={data.gift.accountName || ''} onChange={(event) => updateGroup('gift', 'accountName', event.target.value)} /></Field>
-          <Field label="Số tài khoản"><input value={data.gift.accountNumber || ''} onChange={(event) => updateGroup('gift', 'accountNumber', event.target.value)} /></Field>
-          <Field label="Nội dung chuyển khoản"><input value={data.gift.message || ''} onChange={(event) => updateGroup('gift', 'message', event.target.value)} /></Field>
-        </div>
+        <div className="admin-gift-accounts">{[
+          ['groom', 'Chú rể'], ['bride', 'Cô dâu']
+        ].map(([owner, title]) => {
+          const account = data.gift[owner];
+          return <article key={owner}><h3>{title}</h3>
+            <div className="admin-qr-editor">
+              <div className="admin-qr-preview">{account.qrImage ? <img src={account.qrImage} alt={`Mã QR ${title.toLowerCase()}`} /> : <><Image size={28} /><span>Chưa có mã QR</span></>}</div>
+              <div><label className={`admin-upload${uploading === `qr-${owner}` ? ' loading' : ''}`}><UploadCloud size={15} />{uploading === `qr-${owner}` ? 'Đang tải...' : 'Tải ảnh QR'}
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={Boolean(uploading)} onChange={(event) => { uploadImage(event.target.files?.[0], `qr-${owner}`, (imageUrl) => updateGiftAccount(owner, 'qrImage', imageUrl)); event.target.value = ''; }} />
+              </label>
+                {account.qrImage && <button type="button" className="admin-remove-qr" onClick={() => updateGiftAccount(owner, 'qrImage', '')}><Trash2 size={14} /> Xóa ảnh QR</button>}
+              </div>
+            </div>
+            <div className="admin-form-grid admin-gift-form">
+              <Field label="Ngân hàng"><input value={account.bankName || ''} onChange={(event) => updateGiftAccount(owner, 'bankName', event.target.value)} /></Field>
+              <Field label="Chủ tài khoản"><input value={account.accountName || ''} onChange={(event) => updateGiftAccount(owner, 'accountName', event.target.value)} /></Field>
+              <Field label="Số tài khoản"><input value={account.accountNumber || ''} onChange={(event) => updateGiftAccount(owner, 'accountNumber', event.target.value)} /></Field>
+              <Field label="Nội dung chuyển khoản"><input value={account.message || ''} onChange={(event) => updateGiftAccount(owner, 'message', event.target.value)} /></Field>
+            </div>
+          </article>;
+        })}</div>
       </Panel>
 
       <Panel id="submissions" eyebrow="Phản hồi" title="Khách mời và lời chúc" previewSection="guestbook" onPreview={showPreviewSection}>
         <div className="admin-submission-grid">
           <div><h3>RSVP <span>{submissions.rsvps.length}</span></h3><div className="admin-table-wrap"><table><thead><tr><th>Khách mời</th><th>Trạng thái</th><th>Số khách</th><th>Liên hệ</th></tr></thead><tbody>{submissions.rsvps.map((item) => <tr key={item.id}><td><strong>{item.guestName}</strong><small>{item.note || 'Không có ghi chú'}</small></td><td><span className={`status ${item.attendance}`}>{item.attendance === 'attending' ? 'Tham dự' : item.attendance === 'maybe' ? 'Chưa chắc' : 'Vắng mặt'}</span></td><td>{item.guestCount}</td><td>{item.phone || '—'}</td></tr>)}</tbody></table>{!submissions.rsvps.length && <p className="admin-empty">Chưa có phản hồi RSVP.</p>}</div></div>
-          <div><h3>Lời chúc <span>{submissions.wishes.length}</span></h3><div className="admin-wishes">{submissions.wishes.map((wish) => <article key={wish.id} className={!wish.isVisible ? 'hidden' : ''}><div><strong>{wish.guestName}</strong><time>{new Date(wish.createdAt).toLocaleDateString('vi-VN')}</time></div><p>{wish.message}</p><button type="button" onClick={() => toggleWish(wish)}>{wish.isVisible ? <><EyeOff size={15} /> Ẩn khỏi thiệp</> : <><Eye size={15} /> Hiện trên thiệp</>}</button></article>)}{!submissions.wishes.length && <p className="admin-empty">Chưa có lời chúc.</p>}</div></div>
+          <div><h3>Lời chúc <span>{submissions.wishes.length}</span></h3><div className="admin-wishes">{submissions.wishes.map((wish) => <article key={wish.id} className={!wish.isVisible ? 'hidden' : ''}><div><strong>{wish.guestName}</strong><time>{new Date(wish.createdAt).toLocaleDateString('vi-VN')}</time></div><p>{wish.message}</p><div className="admin-wish-actions"><button type="button" onClick={() => toggleWish(wish)}>{wish.isVisible ? <><EyeOff size={15} /> Ẩn khỏi thiệp</> : <><Eye size={15} /> Hiện trên thiệp</>}</button><button type="button" className="danger" onClick={() => deleteWish(wish)}><Trash2 size={15} /> Xóa</button></div></article>)}{!submissions.wishes.length && <p className="admin-empty">Chưa có lời chúc.</p>}</div></div>
         </div>
       </Panel>
 

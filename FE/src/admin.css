@@ -112,6 +112,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-colors button { display: grid; place-items: center; padding: 4px; color: #9d2630; background: none; border: 0; cursor: pointer; }
 .admin-add-color { margin: 0; }
 .admin-gift-form { margin-top: 28px; padding-top: 25px; border-top: 1px solid var(--admin-line); }
+.admin-gift-accounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 28px; padding-top: 25px; border-top: 1px solid var(--admin-line); }
+.admin-gift-accounts > article { padding: 20px; background: #faf8f5; border: 1px solid #eee6dc; border-radius: 13px; }
+.admin-gift-accounts > article > h3 { margin: 0 0 17px; color: var(--admin-wine); text-align: center; font: 600 25px 'Cormorant Garamond', serif; }
+.admin-gift-accounts .admin-gift-form { grid-template-columns: 1fr; margin-top: 18px; padding-top: 18px; }
+.admin-qr-editor { display: grid; grid-template-columns: 145px 1fr; align-items: center; gap: 13px; }
+.admin-qr-preview { display: grid; place-items: center; width: 145px; height: 145px; padding: 8px; color: #a28c83; background: #fff; border: 1px dashed #ccbcb0; border-radius: 11px; overflow: hidden; }
+.admin-qr-preview img { width: 100%; height: 100%; object-fit: contain; }
+.admin-qr-preview span { margin-top: 6px; text-align: center; font-size: 9px; }
+.admin-qr-editor > div:last-child { display: grid; gap: 8px; }
+.admin-remove-qr { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; padding: 0 10px; color: #9d2630; background: #fff; border: 1px solid #e5cdd0; border-radius: 8px; cursor: pointer; font-size: 9px; font-weight: 700; }
 
 .admin-submission-grid { display: grid; gap: 34px; }
 .admin-submission-grid h3 { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; font: 600 23px 'Cormorant Garamond', serif; }
@@ -134,6 +144,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-wishes time { color: #a18c86; font-size: 9px; }
 .admin-wishes p { min-height: 40px; margin: 11px 0; font: 13px/1.6 Georgia, serif; }
 .admin-wishes button { display: inline-flex; align-items: center; gap: 6px; padding: 0; color: var(--admin-wine); background: none; border: 0; cursor: pointer; font-size: 9px; font-weight: 700; }
+.admin-wish-actions { display: flex; gap: 15px; }
+.admin-wishes .admin-wish-actions button.danger { color: #a22630; }
 .admin-empty { padding: 25px; color: #9a8984; text-align: center; font-size: 11px; }
 .admin-savebar { position: fixed; z-index: 18; right: 25px; bottom: 22px; display: flex; align-items: center; gap: 18px; padding: 10px 10px 10px 18px; background: rgba(255,255,255,.94); border: 1px solid var(--admin-line); border-radius: 12px; box-shadow: 0 15px 45px rgba(54,23,20,.16); backdrop-filter: blur(8px); }
 .admin-savebar span { color: #806d68; font-size: 10px; }
@@ -187,6 +199,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .admin-row-fields { grid-template-columns: 1fr; }
   .admin-image-row .admin-row-actions { grid-column: 2; justify-self: end; }
   .admin-image-control { grid-template-columns: 1fr; }
+  .admin-gift-accounts { grid-template-columns: 1fr; }
+  .admin-qr-editor { grid-template-columns: 120px 1fr; }
+  .admin-qr-preview { width: 120px; height: 120px; }
   .admin-schedule-row { grid-template-columns: 1fr; }
   .admin-schedule-row .admin-row-actions { grid-column: auto; }
   .admin-savebar { left: 13px; right: 13px; bottom: 83px; justify-content: space-between; }

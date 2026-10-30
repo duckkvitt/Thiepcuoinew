@@ -84,7 +84,7 @@ main {
 .family span, .family small { font-size: 12px; }
 .family strong { font-size: 14px; }
 .family-divider { height: 58px; background: rgba(239,230,217,.45); }
-.formal-copy { position: relative; z-index: 1; margin: 32px 0 18px; font-family: Georgia, serif; font-size: 13px; line-height: 1.8; }
+.formal-copy { position: relative; z-index: 1; margin: 32px 0 18px; white-space: pre-line; font-family: Georgia, serif; font-size: 13px; line-height: 1.8; }
 .couple-names { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
 .couple-names h3 { margin: 9px 0 2px; font: 500 clamp(42px, 6vw, 55px)/1 'Cormorant Garamond', Georgia, serif; }
 .couple-names em { margin: 16px 0 3px; font-style: normal; font-size: 10px; letter-spacing: .25em; opacity: .7; }
@@ -226,10 +226,19 @@ main {
 .wine-button:disabled { opacity: .6; cursor: wait; }
 .success-state { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
 .success-state > span { display: grid; place-items: center; width: 62px; height: 62px; color: white; background: var(--wine); border-radius: 50%; }
-.bank-card { display: grid; grid-template-columns: 130px 1fr; gap: 11px 15px; padding: 24px; color: var(--cream); background: linear-gradient(145deg, #6c1720, #440a0f); border-radius: 16px; }
+.modal.gift-modal { width: min(820px, 100%); }
+.gift-bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.bank-account { padding: 12px; background: rgba(255,255,255,.5); border: 1px solid rgba(91,17,24,.11); border-radius: 16px; }
+.bank-account h3 { margin: 3px 0 12px; color: var(--wine); text-align: center; text-transform: uppercase; letter-spacing: .12em; font: 600 13px Georgia, serif; }
+.bank-qr { display: grid; place-items: center; height: 190px; margin-bottom: 11px; padding: 10px; background: #fff; border: 1px solid rgba(91,17,24,.12); border-radius: 12px; overflow: hidden; }
+.bank-qr img { width: 100%; height: 100%; object-fit: contain; }
+.bank-qr.empty { align-content: center; gap: 8px; color: rgba(91,17,24,.45); background: #f4eee6; font: 11px Georgia, serif; }
+.bank-qr.empty svg { width: 42px; height: 42px; }
+.bank-card { display: grid; grid-template-columns: 105px 1fr; gap: 10px 11px; padding: 18px; color: var(--cream); background: linear-gradient(145deg, #6c1720, #440a0f); border-radius: 13px; }
 .bank-card > span { font-size: 10px; letter-spacing: .1em; opacity: .7; }
-.bank-card > strong, .bank-card > button { font-size: 14px; text-align: left; }
+.bank-card > strong, .bank-card > button { min-width: 0; font-size: 12px; text-align: left; overflow-wrap: anywhere; }
 .bank-card > button { display: flex; align-items: center; justify-content: space-between; padding: 0; color: var(--cream); background: none; border: 0; cursor: pointer; }
+.bank-card > button:disabled { cursor: default; opacity: .72; }
 .bank-card svg { width: 16px; }
 .bank-note { margin: 20px 10px 0; text-align: center; font: 14px/1.6 Georgia, serif; }
 
@@ -270,6 +279,7 @@ main {
   .rsvp-form label:nth-child(3), .rsvp-form label:nth-child(5), .rsvp-form .form-message, .rsvp-form .wide { grid-column: auto; }
   .bank-card { grid-template-columns: 1fr; }
   .bank-card > strong, .bank-card > button { margin-bottom: 8px; }
+  .gift-bank-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 430px) {

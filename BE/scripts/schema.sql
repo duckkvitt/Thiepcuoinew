@@ -4,6 +4,12 @@ CREATE TABLE IF NOT EXISTS invitations (
   groom_name VARCHAR(120) NOT NULL,
   bride_name VARCHAR(120) NOT NULL,
   tagline VARCHAR(255) DEFAULT 'SAVE THE DATE',
+  invitation_heading VARCHAR(150) NOT NULL DEFAULT 'Thông tin lễ cưới',
+  announcement_text VARCHAR(500) NOT NULL DEFAULT 'TRÂN TRỌNG BÁO TIN\nLỄ THÀNH HÔN CỦA CON CHÚNG TÔI',
+  groom_role VARCHAR(100) NOT NULL DEFAULT 'TRƯỞNG NAM',
+  bride_role VARCHAR(100) NOT NULL DEFAULT 'ÚT NỮ',
+  ceremony_intro VARCHAR(255) NOT NULL DEFAULT 'LỄ THÀNH HÔN ĐƯỢC CỬ HÀNH TẠI',
+  ceremony_venue VARCHAR(200) NOT NULL DEFAULT 'TƯ GIA',
   wedding_date DATE NOT NULL,
   ceremony_time TIME NOT NULL,
   reception_guest_time TIME NOT NULL,
@@ -17,6 +23,15 @@ CREATE TABLE IF NOT EXISTS invitations (
   dress_colors JSON NOT NULL,
   gift_details JSON NOT NULL,
   is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS admins (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -103,7 +118,10 @@ INSERT INTO invitations (
   'https://www.google.com/maps/dir/?api=1&destination=White+Palace+Hoang+Van+Thu',
   '/images/wedding-hero.png',
   JSON_ARRAY('#5b1118', '#963b43', '#d6aa46', '#eee5d8'),
-  JSON_OBJECT('bankName', 'Vietcombank', 'accountName', 'DANG HOANG LONG', 'accountNumber', '0123456789', 'message', 'HLBN 03012026')
+  JSON_OBJECT(
+    'groom', JSON_OBJECT('label', 'Chú rể', 'bankName', 'Vietcombank', 'accountName', 'DANG HOANG LONG', 'accountNumber', '0123456789', 'message', 'HLBN 03012026', 'qrImage', ''),
+    'bride', JSON_OBJECT('label', 'Cô dâu', 'bankName', '', 'accountName', '', 'accountNumber', '', 'message', '', 'qrImage', '')
+  )
 ) ON DUPLICATE KEY UPDATE id = VALUES(id);
 
 INSERT INTO families (id, invitation_id, side, parent_label, father_name, mother_name, address) VALUES

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CalendarPlus, Check, ChevronLeft, ChevronRight, Copy, Gift, Heart,
-  MapPin, Navigation, Send, Sparkles, X
+  MapPin, Navigation, QrCode, Send, Sparkles, X
 } from 'lucide-react';
 import { invitationApi } from './api.js';
 import { fallbackInvitation, fallbackWishes } from './fallbackData.js';
+import { googleMapsEmbedUrl } from './mapUtils.js';
 import './styles.css';
 
 const pad = (value) => String(value).padStart(2, '0');
@@ -64,15 +65,15 @@ function InvitationCard({ data }) {
   const brideFamily = data.families.find((item) => item.side === 'bride');
   return <section id="invitation" className="section paper-section invitation-wrap">
     <div className="burgundy-card invitation-card">
-      <SectionTitle title="Thông tin lễ cưới" light />
+      <SectionTitle title={data.invitationHeading} light />
       <div className="families">
         {groomFamily && <Family family={groomFamily} />}
         <div className="family-divider" />
         {brideFamily && <Family family={brideFamily} />}
       </div>
-      <p className="formal-copy">TRÂN TRỌNG BÁO TIN<br />LỄ THÀNH HÔN CỦA CON CHÚNG TÔI</p>
-      <div className="couple-names"><h3>Đặng {data.groomName}</h3><em>TRƯỞNG NAM</em><b>&amp;</b><h3>Vũ {data.brideName}</h3><em>ÚT NỮ</em></div>
-      <p className="venue-home">LỄ THÀNH HÔN ĐƯỢC CỬ HÀNH TẠI<br /><strong>TƯ GIA</strong></p>
+      <p className="formal-copy">{data.announcementText}</p>
+      <div className="couple-names"><h3>{data.groomName}</h3>{data.groomRole && <em>{data.groomRole}</em>}<b>&amp;</b><h3>{data.brideName}</h3>{data.brideRole && <em>{data.brideRole}</em>}</div>
+      <p className="venue-home">{data.ceremonyIntro}<br /><strong>{data.ceremonyVenue}</strong></p>
       <DateLockup data={data} />
       <Floral className="card-floral" />
     </div>
@@ -213,11 +214,14 @@ function Venue({ data }) {
   ];
   return <section id="venue" className="section venue-section">
     <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title="Địa điểm tư gia" />
-    <div className="venue-grid">{locations.map((location) => <article className="location-card" key={location.key}>
-      <div className="location-heading"><span>{location.label}</span><h3>{location.name}</h3><p>{location.address}</p></div>
-      {location.mapEmbedUrl ? <div className="location-map"><iframe title={`Bản đồ ${location.label.toLowerCase()}`} src={location.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div> : <div className="location-map empty"><MapPin /><span>Chưa thêm bản đồ</span></div>}
-      {location.directionsUrl && <a className="direction-link" href={location.directionsUrl} target="_blank" rel="noreferrer"><Navigation size={17} /> Chỉ đường</a>}
-    </article>)}</div>
+    <div className="venue-grid">{locations.map((location) => {
+      const mapUrl = location.mapUrl || location.directionsUrl || location.mapEmbedUrl;
+      return <article className="location-card" key={location.key}>
+        <div className="location-heading"><span>{location.label}</span><h3>{location.name}</h3><p>{location.address}</p></div>
+        {mapUrl || location.address ? <div className="location-map"><iframe title={`Bản đồ ${location.label.toLowerCase()}`} src={googleMapsEmbedUrl(location)} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div> : <div className="location-map empty"><MapPin /><span>Chưa thêm bản đồ</span></div>}
+        {mapUrl && <a className="direction-link" href={mapUrl} target="_blank" rel="noreferrer"><Navigation size={17} /> Chỉ đường</a>}
+      </article>;
+    })}</div>
   </section>;
 }
 
@@ -279,14 +283,14 @@ function GiftSection({ onOpen }) {
   </section>;
 }
 
-function Modal({ title, onClose, children }) {
+function Modal({ title, onClose, children, className = '' }) {
   useEffect(() => {
     const close = (event) => event.key === 'Escape' && onClose();
     window.addEventListener('keydown', close);
     return () => window.removeEventListener('keydown', close);
   }, [onClose]);
   return <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-    <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`modal ${className}`} role="dialog" aria-modal="true" aria-label={title}>
       <button className="modal-close" onClick={onClose} aria-label="Đóng"><X /></button>
       <SectionTitle title={title} />{children}
     </div>
@@ -317,14 +321,25 @@ function RsvpModal({ onClose, onSubmit }) {
 
 function GiftModal({ gift, onClose }) {
   const [copied, setCopied] = useState('');
-  const copy = async (value, label) => { await navigator.clipboard.writeText(value); setCopied(label); setTimeout(() => setCopied(''), 1600); };
-  return <Modal title="Mừng cưới từ xa" onClose={onClose}>
-    <div className="bank-card">
-      <span>NGÂN HÀNG</span><strong>{gift.bankName}</strong>
-      <span>CHỦ TÀI KHOẢN</span><strong>{gift.accountName}</strong>
-      <span>SỐ TÀI KHOẢN</span><button onClick={() => copy(gift.accountNumber, 'account')}>{gift.accountNumber}{copied === 'account' ? <Check /> : <Copy />}</button>
-      <span>NỘI DUNG</span><button onClick={() => copy(gift.message, 'message')}>{gift.message}{copied === 'message' ? <Check /> : <Copy />}</button>
-    </div>
+  const copy = async (value, label) => { if (!value) return; await navigator.clipboard.writeText(value); setCopied(label); setTimeout(() => setCopied(''), 1600); };
+  const accounts = [
+    gift.groom || { ...gift, label: 'Chú rể' },
+    gift.bride || { label: 'Cô dâu', bankName: '', accountName: '', accountNumber: '', message: '', qrImage: '' }
+  ];
+  return <Modal title="Mừng cưới từ xa" onClose={onClose} className="gift-modal">
+    <div className="gift-bank-grid">{accounts.map((account, index) => {
+      const owner = index === 0 ? 'groom' : 'bride';
+      return <section className="bank-account" key={owner}>
+        <h3>{account.label || (index === 0 ? 'Chú rể' : 'Cô dâu')}</h3>
+        <div className={`bank-qr${account.qrImage ? '' : ' empty'}`}>{account.qrImage ? <img src={account.qrImage} alt={`Mã QR ${account.label || owner}`} /> : <><QrCode /><span>Chưa cập nhật mã QR</span></>}</div>
+        <div className="bank-card">
+          <span>NGÂN HÀNG</span><strong>{account.bankName || 'Chưa cập nhật'}</strong>
+          <span>CHỦ TÀI KHOẢN</span><strong>{account.accountName || 'Chưa cập nhật'}</strong>
+          <span>SỐ TÀI KHOẢN</span><button disabled={!account.accountNumber} onClick={() => copy(account.accountNumber, `${owner}-account`)}>{account.accountNumber || 'Chưa cập nhật'}{account.accountNumber && (copied === `${owner}-account` ? <Check /> : <Copy />)}</button>
+          <span>NỘI DUNG</span><button disabled={!account.message} onClick={() => copy(account.message, `${owner}-message`)}>{account.message || 'Chưa cập nhật'}{account.message && (copied === `${owner}-message` ? <Check /> : <Copy />)}</button>
+        </div>
+      </section>;
+    })}</div>
     <p className="bank-note">Cảm ơn tình cảm và lời chúc của bạn dành cho cô dâu chú rể.</p>
   </Modal>;
 }

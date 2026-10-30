@@ -65,5 +65,6 @@ export const adminApi = {
   uploadImage: (token, file) => adminUpload(token, file),
   updateWish: (token, id, isVisible) => adminRequest(`/invitations/${slug}/wishes/${id}`, {
     token, method: 'PATCH', body: JSON.stringify({ isVisible })
-  })
+  }),
+  deleteWish: (token, id) => adminRequest(`/invitations/${slug}/wishes/${id}`, { token, method: 'DELETE' })
 };
