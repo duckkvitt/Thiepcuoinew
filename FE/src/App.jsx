@@ -5,9 +5,11 @@ import {
 } from 'lucide-react';
 import { invitationApi } from './api.js';
 import { fallbackInvitation, fallbackWishes } from './fallbackData.js';
+import './styles.css';
 
 const pad = (value) => String(value).padStart(2, '0');
 const toLocalDate = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00`);
+const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'admin';
 
 function SectionTitle({ eyebrow, title, light = false }) {
   return <div className={`section-title ${light ? 'light' : ''}`}>
@@ -22,7 +24,7 @@ function Floral({ className = '' }) {
 }
 
 function Hero({ data }) {
-  return <header className="hero">
+  return <header id="hero" className="hero">
     <div className="hero-topline"><span />{data.tagline}<span /></div>
     <div className="envelope-scene">
       <Floral className="hero-floral" />
@@ -118,7 +120,7 @@ function Gallery({ data }) {
     setDragX(0);
   };
 
-  return <section className="section gallery-section">
+  return <section id="gallery" className="section gallery-section">
     <SectionTitle title="Album ảnh" />
     <div
       className={`gallery-stage${isDragging ? ' is-dragging' : ''}`}
@@ -188,7 +190,7 @@ function addToCalendar(data) {
 
 function Reception({ data, onRsvp }) {
   const date = toLocalDate(data.weddingDate);
-  return <section className="section reception-section">
+  return <section id="reception" className="section reception-section">
     <div className="burgundy-card reception-card">
       <SectionTitle title="Thông tin tiệc cưới" light />
       <h3>TIỆC CƯỚI SẼ DIỄN RA VÀO LÚC:</h3>
@@ -205,7 +207,7 @@ function Reception({ data, onRsvp }) {
 }
 
 function Venue({ data }) {
-  return <section className="section venue-section">
+  return <section id="venue" className="section venue-section">
     <SectionTitle eyebrow="TIỆC CƯỚI SẼ TỔ CHỨC TẠI" title={data.venue.name} />
     <p>{data.venue.address}</p>
     <div className="map-frame"><iframe title="Bản đồ địa điểm tiệc cưới" src={data.venue.mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
@@ -214,7 +216,7 @@ function Venue({ data }) {
 }
 
 function DressAndTimeline({ data }) {
-  return <section className="section timeline-section">
+  return <section id="timeline" className="section timeline-section">
     <div className="dress-code">
       <SectionTitle title="Dress code" />
       <p>Trang phục dự tiệc</p>
@@ -241,7 +243,7 @@ function Guestbook({ wishes, onSubmit }) {
       await onSubmit(form); setForm({ guestName: '', message: '' }); setState({ loading: false, message: 'Lời chúc đã được gửi. Cảm ơn bạn!' });
     } catch (error) { setState({ loading: false, message: error.message }); }
   };
-  return <section className="section guestbook-section">
+  return <section id="guestbook" className="section guestbook-section">
     <form className="guestbook-form" onSubmit={submit}>
       <SectionTitle title="Sổ lưu bút" />
       <input value={form.guestName} onChange={(e) => setForm({ ...form, guestName: e.target.value })} placeholder="Nhập tên*" minLength="2" maxLength="100" required />
@@ -260,7 +262,7 @@ function Guestbook({ wishes, onSubmit }) {
 }
 
 function GiftSection({ onOpen }) {
-  return <section className="section gift-section">
+  return <section id="gift" className="section gift-section">
     <SectionTitle title="Hộp quà mừng" />
     <button className="gift-envelope" onClick={onOpen} aria-label="Mở hộp quà mừng">
       <span className="gift-card"><Gift size={38} /><b>Hỷ</b></span><i /><em><Heart size={22} /></em>
@@ -326,17 +328,36 @@ export default function App() {
   const [wishes, setWishes] = useState(fallbackWishes);
   const [modal, setModal] = useState(null);
   const [offline, setOffline] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
+    if (isPreviewMode) {
+      const receivePreview = (event) => {
+        if (event.origin !== window.location.origin || event.source !== window.parent) return;
+        if (event.data?.type === 'wedding-preview-content' && event.data.content) {
+          setData(event.data.content);
+        }
+        if (event.data?.type === 'wedding-preview-scroll' && event.data.section) {
+          document.getElementById(event.data.section)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+      window.addEventListener('message', receivePreview);
+      window.parent.postMessage({ type: 'wedding-preview-ready' }, window.location.origin);
+      return () => window.removeEventListener('message', receivePreview);
+    }
     Promise.all([invitationApi.getInvitation(), invitationApi.getWishes()])
       .then(([invitation, wishList]) => { setData(invitation); setWishes(wishList); })
-      .catch(() => setOffline(true));
+      .catch((error) => { if (error.status === 404) setUnavailable(true); else setOffline(true); });
   }, []);
 
   const createWish = async (payload) => {
     const wish = await invitationApi.createWish(payload);
     setWishes((current) => [wish, ...current]);
   };
+
+  if (unavailable) return <main className="invitation-unavailable">
+    <div><span>HL &amp; BN</span><h1>Thiệp đang được cập nhật</h1><p>Cô dâu và chú rể đang chuẩn bị những chi tiết cuối cùng. Mời bạn quay lại sau nhé!</p></div>
+  </main>;
 
   return <main>
     {offline && <div className="offline-note">Đang hiển thị dữ liệu mẫu — hãy chạy API và MySQL để gửi RSVP/lời chúc.</div>}

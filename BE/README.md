@@ -24,6 +24,20 @@ npm run dev
 
 Mở `http://localhost:5173`. API chạy tại `http://localhost:8080/api`.
 
+## Trang quản trị
+
+Mở `http://localhost:5173/admin` và đăng nhập bằng hai giá trị `ADMIN_USERNAME` và `ADMIN_PASSWORD` trong `BE/.env`.
+Trang quản trị cho phép:
+
+- Sửa tên cô dâu/chú rể, ngày giờ, ảnh bìa và trạng thái xuất bản.
+- Sửa thông tin hai gia đình, địa điểm, Google Maps và chỉ đường.
+- Thêm, xóa, sắp xếp ảnh album và lịch trình ngày cưới.
+- Tải trực tiếp ảnh JPG, PNG, WEBP hoặc GIF (tối đa 8 MB) cho ảnh bìa và album; file được lưu trong `BE/uploads`.
+- Chỉnh màu dress code và thông tin tài khoản mừng cưới.
+- Xem RSVP, tổng số khách và ẩn/hiện lời chúc.
+
+Phiên đăng nhập tồn tại 8 giờ và được ký bằng `ADMIN_SESSION_SECRET`. Hãy đổi cả hai giá trị quản trị trong `.env` trước khi triển khai công khai.
+
 ## Dữ liệu
 
 Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu. Có thể chạy lại an toàn. Các bảng chính:
@@ -42,6 +56,10 @@ Lệnh `npm run db:init` tạo database `thiep_cuoi_app` và seed thiệp mẫu.
 - `GET /api/invitations/hoang-long-bao-ngoc/wishes`
 - `POST /api/invitations/hoang-long-bao-ngoc/wishes`
 - `POST /api/invitations/hoang-long-bao-ngoc/rsvps`
+- `POST /api/admin/login`
+- `GET|PUT /api/admin/invitations/hoang-long-bao-ngoc`
+- `GET /api/admin/invitations/hoang-long-bao-ngoc/submissions`
+- `PATCH /api/admin/invitations/hoang-long-bao-ngoc/wishes/:id`
 
 Giao diện vẫn hiển thị dữ liệu mẫu nếu API chưa chạy, đồng thời hiện thông báo ở cuối trang. Muốn gửi lời chúc hoặc RSVP thì backend và MySQL phải hoạt động.
 

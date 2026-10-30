@@ -10,7 +10,7 @@ export const dbConfig = {
   password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME || 'thiep_cuoi_app',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
   queueLimit: 0,
   charset: 'utf8mb4',
   timezone: '+07:00',
@@ -19,9 +19,15 @@ export const dbConfig = {
 
 export const pool = mysql.createPool(dbConfig);
 
-export async function getInvitationBySlug(slug) {
+const parseJson = (value, fallback) => {
+  if (value == null) return fallback;
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return fallback; }
+};
+
+export async function getInvitationBySlug(slug, { includeUnpublished = false } = {}) {
   const [rows] = await pool.query(
-    `SELECT * FROM invitations WHERE slug = ? AND is_published = TRUE LIMIT 1`,
+    `SELECT * FROM invitations WHERE slug = ? ${includeUnpublished ? '' : 'AND is_published = TRUE'} LIMIT 1`,
     [slug]
   );
 
@@ -52,8 +58,9 @@ export async function getInvitationBySlug(slug) {
       directionsUrl: invitation.directions_url
     },
     heroImage: invitation.hero_image,
-    dressColors: invitation.dress_colors,
-    gift: invitation.gift_details,
+    dressColors: parseJson(invitation.dress_colors, []),
+    gift: parseJson(invitation.gift_details, {}),
+    isPublished: Boolean(invitation.is_published),
     families,
     gallery,
     schedule
