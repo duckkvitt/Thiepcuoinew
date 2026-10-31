@@ -83,7 +83,6 @@ function Floral({ className = '' }) {
 function Hero({ data }) {
   const date = toLocalDate(data.weddingDate);
   return <header id="hero" className="hero typography-scope" style={typographyStyle(data.typography, 'hero')}>
-    <div className="hero-topline"><span />{data.tagline}<span /></div>
     <div className="envelope-scene">
       <Floral className="hero-floral" />
       <div className="photo-card"><img src={data.heroImage} alt={`Ảnh cưới ${data.groomName} và ${data.brideName}`} /></div>
@@ -291,13 +290,8 @@ function Venue({ data }) {
   </section>;
 }
 
-function DressAndTimeline({ data }) {
+function TimelineSection({ data }) {
   return <section id="timeline" className="section timeline-section typography-scope" style={typographyStyle(data.typography, 'timeline')}>
-    <div className="dress-code">
-      <SectionTitle title="Dress code" />
-      <p>Trang phục dự tiệc</p>
-      <div>{data.dressColors.map((color) => <span key={color} style={{ background: color }} />)}</div>
-    </div>
     <div className="burgundy-card timeline-card">
       <SectionTitle title="Lịch trình ngày cưới" light />
       <div className="timeline">
@@ -536,7 +530,7 @@ export default function App() {
     <Gallery data={data} />
     <Reception data={data} onRsvp={() => setModal('rsvp')} />
     <Venue data={data} />
-    <DressAndTimeline data={data} />
+    <TimelineSection data={data} />
     <Guestbook data={data} wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
     <GiftSection data={data} onOpen={() => setModal('gift')} />
     {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} initialGuestName={invitee?.name} />}

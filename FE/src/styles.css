@@ -116,7 +116,7 @@ main {
 }
 
 /* Hero */
-.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; background-color: #fbf5eb; background-image: url('/images/lion-dance-full-body-hero-bg.png'); background-position: center -70px; background-repeat: no-repeat; background-size: 100% auto; }
+.hero { position: relative; min-height: 950px; padding: 66px 28px 40px; text-align: center; overflow: hidden; background-color: #fbf5eb; background-image: url('/images/lion-dance-full-body-clean-hero-bg.png'); background-position: center -70px; background-repeat: no-repeat; background-size: 100% auto; }
 .hero::after, .paper-section::after, .gallery-section::after, .venue-section::after, .timeline-section::after, .gift-section::after {
   content: ''; position: absolute; z-index: 0; left: 3%; right: 3%; bottom: -10px; height: 44%; opacity: .12;
   background: linear-gradient(130deg, transparent 30%, #7e654f 30% 30.3%, transparent 30.3% 33%, #7e654f 33% 33.3%, transparent 33.3%), linear-gradient(50deg, transparent 47%, #7e654f 47% 47.25%, transparent 47.25%);
@@ -124,9 +124,7 @@ main {
 }
 .hero > * { position: relative; z-index: 1; }
 .hero::after { display: none; }
-.hero-topline { display: flex; justify-content: center; align-items: center; gap: 18px; font-family: Georgia, serif; font-size: 16px; letter-spacing: .32em; }
-.hero-topline span { width: 42px; height: 1px; background: currentColor; opacity: .45; }
-.envelope-scene { width: min(560px, 88vw); height: 560px; margin: 52px auto 18px; position: relative; }
+.envelope-scene { width: min(560px, 88vw); height: 560px; margin: 70px auto 18px; position: relative; }
 .envelope-back { position: absolute; z-index: 1; left: 9%; bottom: 8%; width: 82%; height: 53%; border-radius: 8px 8px 3px 3px; background: linear-gradient(145deg, #711b25, #4a0c12); box-shadow: 0 24px 36px rgba(48,15,12,.22); }
 .envelope-back::before { content: ''; position: absolute; inset: 0; background: linear-gradient(35deg, transparent 49.5%, rgba(255,255,255,.08) 50%, transparent 50.5%); }
 .photo-card { position: absolute; z-index: 2; left: 25%; top: 3%; width: 52%; height: 68%; padding: 10px; background: white; transform: rotate(7deg); transform-origin: 50% 100%; box-shadow: 0 10px 24px rgba(47,27,16,.25); transition: transform .72s cubic-bezier(.2,.8,.2,1), box-shadow .6s ease; will-change: transform; }
@@ -236,13 +234,8 @@ main {
 .location-map.empty { gap: 6px; align-content: center; font: 11px Georgia, serif; }
 .direction-link { position: relative; z-index: 1; display: inline-flex; align-items: center; align-self: center; gap: 8px; margin-top: 18px; padding-bottom: 3px; color: var(--wine); border-bottom: 1px solid rgba(91,17,24,.45); font: 600 12px Georgia, serif; text-decoration: none; }
 
-/* Dress code and timeline */
+/* Wedding timeline */
 .timeline-section { padding-top: 65px; padding-bottom: 90px; }
-.dress-code { position: relative; z-index: 1; margin-bottom: 70px; text-align: center; }
-.dress-code .section-title { margin-bottom: 2px; }
-.dress-code p { margin: 0 0 24px; font: 14px Georgia, serif; }
-.dress-code > div:last-child { display: flex; justify-content: center; gap: 24px; }
-.dress-code > div:last-child span { width: 50px; height: 50px; border: 1px solid rgba(65,25,18,.18); border-radius: 50%; box-shadow: 0 5px 12px rgba(42,23,14,.12); }
 .timeline-card { width: min(670px, 94%); min-height: 420px; margin: auto; padding: 42px 60px; }
 .timeline { position: relative; z-index: 2; width: min(410px, 100%); margin: auto; }
 .timeline-item { display: grid; grid-template-columns: 80px 22px 1fr; align-items: center; min-height: 64px; font-family: Georgia, serif; }
@@ -337,8 +330,7 @@ main {
   .entry-petal:nth-child(n+13) { display: none; }
   .section { padding-left: 16px; padding-right: 16px; }
   .hero { min-height: 820px; padding-top: 45px; background-position: center -42px; }
-  .hero-topline { font-size: 13px; letter-spacing: .2em; }
-  .envelope-scene { height: 470px; margin-top: 38px; }
+  .envelope-scene { height: 470px; margin-top: 53px; }
   .photo-card { left: 24%; width: 55%; height: 69%; }
   .hero-floral { left: 0; width: 50%; }
   .wax-seal { bottom: 27%; width: 59px; height: 59px; }
@@ -388,8 +380,6 @@ main {
   .gallery-section { min-height: 590px; }
   .gallery-stage, .gallery-image { height: 350px; }
   .service-times { gap: 25px; }
-  .dress-code > div:last-child { gap: 14px; }
-  .dress-code > div:last-child span { width: 44px; height: 44px; }
   .timeline-item { grid-template-columns: 70px 22px 1fr; }
   .timeline-floral { display: none; }
   .wishes article > div { flex-direction: column; gap: 5px; }
@@ -397,7 +387,7 @@ main {
 
 /* Per-section typography, configured from the admin page */
 .typography-scope :where(p, small, time, button, input, textarea, .family, .date-lockup, .service-times, .calendar-grid, .location-heading, .direction-link, .timeline-item, .wishes article) { font-family: var(--custom-body-font); }
-.typography-scope :where(.entry-kicker, .entry-invite, .hero-topline, .hero-date, .formal-copy, .venue-home, .reception-card > h3, .lunar, .dress-code > p, .timeline-item, .guestbook-form input, .guestbook-form textarea, .wishes, .gift-open, .gift-section > p, .gift-section > small) { font-size: var(--custom-body-size); }
+.typography-scope :where(.entry-kicker, .entry-invite, .hero-date, .formal-copy, .venue-home, .reception-card > h3, .lunar, .timeline-item, .guestbook-form input, .guestbook-form textarea, .wishes, .gift-open, .gift-section > p, .gift-section > small) { font-size: var(--custom-body-size); }
 .typography-scope .section-title h2 { font-family: var(--custom-heading-font); font-size: var(--custom-heading-size); font-style: var(--custom-heading-style); font-weight: var(--custom-heading-weight); }
 .entry-card.typography-scope .entry-names, .entry-card.typography-scope .entry-names strong,
 .hero.typography-scope .hero-names, .hero.typography-scope .hero-names p, .hero.typography-scope .hero-names span,

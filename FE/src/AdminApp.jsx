@@ -554,11 +554,7 @@ export default function AdminApp() {
         <button type="button" className="admin-add" onClick={() => updateRoot('schedule', [...data.schedule, { time_label: '18:00', title: '', icon: 'heart' }])}><Plus size={17} /> Thêm mốc thời gian</button>
       </Panel>
 
-      <Panel id="gift" eyebrow="Dress code & ngân hàng" title="Màu sắc và quà mừng" previewSection="gift" onPreview={showPreviewSection}>
-        <h3 className="admin-subtitle">Màu dress code</h3>
-        <div className="admin-colors">{data.dressColors.map((color, index) => <label key={`${color}-${index}`}><input type="color" value={color} onChange={(event) => updateRoot('dressColors', data.dressColors.map((item, itemIndex) => itemIndex === index ? event.target.value : item))} /><span>{color}</span><button type="button" onClick={() => updateRoot('dressColors', data.dressColors.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={14} /></button></label>)}
-          <button type="button" className="admin-add-color" onClick={() => updateRoot('dressColors', [...data.dressColors, '#d6aa46'])}><Plus size={17} /> Thêm màu</button>
-        </div>
+      <Panel id="gift" eyebrow="Ngân hàng" title="Quà mừng" previewSection="gift" onPreview={showPreviewSection}>
         <div className="admin-gift-accounts">{[
           ['groom', 'Chú rể'], ['bride', 'Cô dâu']
         ].map(([owner, title]) => {

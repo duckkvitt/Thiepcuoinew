@@ -16,7 +16,7 @@ export const TYPOGRAPHY_SECTIONS = [
   { id: 'gallery', label: 'Album ảnh', preview: 'gallery' },
   { id: 'reception', label: 'Thông tin tiệc cưới', preview: 'reception' },
   { id: 'venue', label: 'Địa điểm', preview: 'venue' },
-  { id: 'timeline', label: 'Dress code & lịch trình', preview: 'timeline' },
+  { id: 'timeline', label: 'Lịch trình ngày cưới', preview: 'timeline' },
   { id: 'guestbook', label: 'Sổ lưu bút', preview: 'guestbook' },
   { id: 'gift', label: 'Lì xì mừng cưới', preview: 'gift' }
 ];
