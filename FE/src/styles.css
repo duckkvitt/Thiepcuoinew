@@ -281,7 +281,6 @@ main {
 @keyframes lucky-sparkle { 0%, 100% { opacity: .35; transform: scale(.8) rotate(0deg); } 50% { opacity: 1; transform: scale(1.16) rotate(16deg); } }
 .gift-open { position: relative; z-index: 2; padding: 7px; background: none; border: 0; border-bottom: 1px solid; cursor: pointer; font: 13px Georgia, serif; }
 .gift-section > p { position: relative; z-index: 1; margin: 45px auto; font: 13px Georgia, serif; }
-.gift-section > small { position: relative; z-index: 1; color: rgba(91,17,24,.45); }
 
 /* Modals */
 .modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(28,6,8,.67); backdrop-filter: blur(5px); overflow-y: auto; }
@@ -387,7 +386,7 @@ main {
 
 /* Per-section typography, configured from the admin page */
 .typography-scope :where(p, small, time, button, input, textarea, .family, .date-lockup, .service-times, .calendar-grid, .location-heading, .direction-link, .timeline-item, .wishes article) { font-family: var(--custom-body-font); }
-.typography-scope :where(.entry-kicker, .entry-invite, .hero-date, .formal-copy, .venue-home, .reception-card > h3, .lunar, .timeline-item, .guestbook-form input, .guestbook-form textarea, .wishes, .gift-open, .gift-section > p, .gift-section > small) { font-size: var(--custom-body-size); }
+.typography-scope :where(.entry-kicker, .entry-invite, .hero-date, .formal-copy, .venue-home, .reception-card > h3, .lunar, .timeline-item, .guestbook-form input, .guestbook-form textarea, .wishes, .gift-open, .gift-section > p) { font-size: var(--custom-body-size); }
 .typography-scope .section-title h2 { font-family: var(--custom-heading-font); font-size: var(--custom-heading-size); font-style: var(--custom-heading-style); font-weight: var(--custom-heading-weight); }
 .entry-card.typography-scope .entry-names, .entry-card.typography-scope .entry-names strong,
 .hero.typography-scope .hero-names, .hero.typography-scope .hero-names p, .hero.typography-scope .hero-names span,

@@ -343,7 +343,6 @@ function GiftSection({ data, onOpen }) {
     </button>
     <button className="gift-open" onClick={onOpen}>Nhấn để mở</button>
     <p>Sự hiện diện của quý khách là niềm vinh hạnh của gia đình chúng tôi!</p>
-    <small>♡ hoanglongbaongoc.com</small>
   </section>;
 }
 
