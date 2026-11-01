@@ -1,0 +1,18 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Deploy wedding invitation social link preview metadata",
+  "Parameters": {
+    "commands": [
+      "set -Eeuo pipefail",
+      "aws s3 cp 's3://fresh-deploy-wedding-866409327331-ap-southeast-2/releases/1b00ff6c37c5c24ba7a44cc689450149d39f1f09d047ff2bb49436d54de977b5.zip' /tmp/wedding-social-preview.zip --region ap-southeast-2",
+      "unzip -oq /tmp/wedding-social-preview.zip -d /opt/wedding-app || test -f /opt/wedding-app/package.json",
+      "chown -R ec2-user:ec2-user /opt/wedding-app",
+      "install -d -o ec2-user -g ec2-user -m 0750 /opt/wedding-app/uploads",
+      "cd /opt/wedding-app && runuser -u ec2-user -- /usr/bin/npm-22 ci --omit=dev",
+      "systemctl restart wedding-app.service",
+      "systemctl is-active wedding-app.service",
+      "for attempt in $(seq 1 12); do if curl --fail --silent --show-error http://127.0.0.1:8080/api/health; then rm -f /tmp/wedding-social-preview.zip; exit 0; fi; sleep 5; done; exit 1"
+    ]
+  }
+}

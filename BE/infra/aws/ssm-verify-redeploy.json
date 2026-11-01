@@ -1,0 +1,12 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Verify redeployed wedding invitation application",
+  "Parameters": {
+    "commands": [
+      "set -Eeuo pipefail",
+      "systemctl is-active wedding-app.service",
+      "for attempt in $(seq 1 12); do if curl --fail --silent --show-error http://127.0.0.1:8080/api/health; then exit 0; fi; sleep 5; done; exit 1"
+    ]
+  }
+}

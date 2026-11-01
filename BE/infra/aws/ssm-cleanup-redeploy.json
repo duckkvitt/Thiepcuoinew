@@ -1,0 +1,8 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Remove temporary wedding redeploy archive from EC2",
+  "Parameters": {
+    "commands": ["rm -f /tmp/wedding-redeploy.zip"]
+  }
+}

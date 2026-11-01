@@ -585,6 +585,37 @@ app.post('/api/invitations/:slug/rsvps', publicWriteLimiter, async (req, res, ne
   }
 });
 
+app.get('/moi-cuoi', (_req, res) => {
+  const websiteUrl = 'https://dby0plywuaxuk.cloudfront.net';
+  const shareUrl = `${websiteUrl}/moi-cuoi`;
+  const imageUrl = `${websiteUrl}/images/wedding-gallery.png`;
+  res.set('Cache-Control', 'no-store');
+  res.type('html').send(`<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tiến Anh & Hải Yến | Thiệp cưới</title>
+    <meta name="description" content="Tiến Anh & Hải Yến trân trọng kính mời bạn đến chung vui trong ngày cưới.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="vi_VN">
+    <meta property="og:site_name" content="Thiệp cưới Tiến Anh & Hải Yến">
+    <meta property="og:title" content="Tiến Anh & Hải Yến | Thiệp cưới">
+    <meta property="og:description" content="Tiến Anh & Hải Yến trân trọng kính mời bạn đến chung vui trong ngày cưới.">
+    <meta property="og:url" content="${shareUrl}">
+    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:image:secure_url" content="${imageUrl}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1536">
+    <meta property="og:image:height" content="1024">
+    <meta property="og:image:alt" content="Tiến Anh và Hải Yến">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta http-equiv="refresh" content="0;url=/">
+  </head>
+  <body><a href="/">Mở thiệp cưới</a><script>location.replace('/');</script></body>
+</html>`);
+});
+
 app.use(express.static(publicDirectory, { index: false, maxAge: '1h' }));
 app.use((req, res, next) => {
   if (req.method !== 'GET' || req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
