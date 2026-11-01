@@ -1,0 +1,7 @@
+{
+  "commands": [
+    "ls -la /var/lib/cloud/instance/scripts /var/lib/cloud/instance || true",
+    "grep -Rni 'alternatives --set npm' /var/lib/cloud/instance/scripts /var/lib/cloud/instance/user-data.txt 2>/dev/null || true",
+    "grep -Rni 'dnf install -y nodejs22' /var/lib/cloud/instance/scripts /var/lib/cloud/instance/user-data.txt 2>/dev/null || true"
+  ]
+}

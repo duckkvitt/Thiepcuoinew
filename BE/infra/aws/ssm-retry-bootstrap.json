@@ -1,0 +1,7 @@
+{
+  "commands": [
+    "sed -i '/alternatives --set npm/d' /var/lib/cloud/instance/scripts/part-001",
+    "sed -i 's#unzip -oq /tmp/wedding-app.zip -d /opt/wedding-app#unzip -oq /tmp/wedding-app.zip -d /opt/wedding-app || test -f /opt/wedding-app/package.json#' /var/lib/cloud/instance/scripts/part-001",
+    "bash /var/lib/cloud/instance/scripts/part-001"
+  ]
+}

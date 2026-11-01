@@ -1,0 +1,12 @@
+{
+  "TagSet": [
+    {
+      "Key": "Workload",
+      "Value": "wedding-invitation"
+    },
+    {
+      "Key": "Purpose",
+      "Value": "deployment-artifacts"
+    }
+  ]
+}

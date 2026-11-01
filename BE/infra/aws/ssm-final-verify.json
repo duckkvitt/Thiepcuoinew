@@ -1,0 +1,15 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Final verification of wedding application deployment",
+  "Parameters": {
+    "commands": [
+      "set -euo pipefail",
+      "systemctl is-active wedding-app.service",
+      "systemctl is-active mariadb.service",
+      "curl --fail --silent --show-error http://127.0.0.1:8080/api/health",
+      "cd /opt/wedding-app",
+      "node -e \"require('dotenv').config(); const mysql=require('mysql2/promise'); (async()=>{const db=await mysql.createConnection({host:process.env.DB_HOST,port:Number(process.env.DB_PORT||3306),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME}); const [tables]=await db.query('SHOW TABLES'); const [[refs]]=await db.query(\\\"SELECT (SELECT COUNT(*) FROM invitations WHERE CONCAT_WS(' ',map_embed_url,directions_url,hero_image,CAST(dress_colors AS CHAR),CAST(gift_details AS CHAR),CAST(typography_settings AS CHAR),music_url) REGEXP 'localhost|127[.]0[.]0[.]1') + (SELECT COUNT(*) FROM gallery_images WHERE image_url REGEXP 'localhost|127[.]0[.]0[.]1') + (SELECT COUNT(*) FROM wedding_locations WHERE CONCAT_WS(' ',map_embed_url,directions_url) REGEXP 'localhost|127[.]0[.]0[.]1') AS count\\\"); console.log(JSON.stringify({tableCount:tables.length,localUploadReferenceCount:Number(refs.count)})); await db.end();})().catch(e=>{console.error(e.message);process.exit(1)})\""
+    ]
+  }
+}

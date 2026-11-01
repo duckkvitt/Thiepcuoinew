@@ -1,0 +1,454 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Wedding invitation web application - runs the existing Node.js, React, and
+  MySQL-compatible workload on one encrypted EC2 instance behind CloudFront.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@3
+  com.aws.cloudformation.Context:
+    arch: CloudFront HTTPS -> EC2:8080; Node serves SPA/API/uploads; MariaDB on encrypted root EBS
+    must:
+      - All Regional resources stay in the selected project Region
+      - No inbound SSH; administer through Systems Manager
+      - Origin ingress stays restricted to CloudFront origin-facing addresses
+
+Parameters:
+  ArtifactBucket:
+    Type: String
+    AllowedPattern: '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+    Description: Private S3 bucket containing the deployment archive.
+  ArtifactKey:
+    Type: String
+    MinLength: 1
+    Description: S3 object key for the deployment archive.
+  RuntimeSecretArn:
+    Type: String
+    AllowedPattern: '^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:.+$'
+    Description: ARN of the Secrets Manager secret holding runtime credentials.
+  CloudFrontPrefixListId:
+    Type: String
+    AllowedPattern: '^pl-[a-z0-9]+$'
+    Description: Managed prefix list for CloudFront origin-facing servers.
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+    Description: EC2 size for the application and MariaDB.
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Latest Amazon Linux 2023 x86_64 AMI from the public SSM parameter.
+
+Resources:
+  ApplicationVpc:
+    Type: AWS::EC2::VPC
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: isolated network for the single-instance wedding application
+        must:
+          - DNS support and hostnames remain enabled for AWS service access
+        mutable: change-with-constraints
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-vpc'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-igw'
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref ApplicationVpc
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: public path is required for CloudFront origin traffic and outbound package installation
+        must:
+          - Instance security group only accepts CloudFront origin-facing traffic
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: 10.20.1.0/24
+      MapPublicIpOnLaunch: false
+      VpcId: !Ref ApplicationVpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-a'
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ApplicationVpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Metadata:
+      guard:
+        SuppressedRules:
+          - NO_UNRESTRICTED_ROUTE_TO_IGW
+      com.aws.cloudformation.Context:
+        why: public subnet needs internet routing for CloudFront origin traffic and package downloads
+        must:
+          - Keep instance ingress restricted to the CloudFront managed prefix list
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  OriginSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: permits app traffic only from the AWS-managed CloudFront origin network
+        must:
+          - Never widen app ingress to 0.0.0.0/0
+          - Keep SSH closed; use Systems Manager
+        mutable: review-required
+    Properties:
+      GroupDescription: CloudFront-only access to the wedding application
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Package downloads and AWS service endpoints
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourcePrefixListId: !Ref CloudFrontPrefixListId
+          Description: CloudFront origin-facing servers only
+      VpcId: !Ref ApplicationVpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-origin'
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: gives EC2 only artifact read, runtime-secret read, and keyless Systems Manager access
+        must:
+          - Do not add human access or broad service permissions
+        mutable: review-required
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'
+        - !Ref DeploymentInputsPolicy
+
+  DeploymentInputsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: scopes bootstrap access to one archive object and one runtime secret
+        must:
+          - Do not widen S3 or Secrets Manager resources
+        mutable: review-required
+    Properties:
+      Description: Read-only bootstrap inputs for the wedding application instance.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${ArtifactBucket}/${ArtifactKey}'
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref RuntimeSecretArn
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  WebInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: preserves the existing Express + local upload + MySQL design with minimal app changes
+        must:
+          - IMDSv2 remains required
+          - Root EBS remains encrypted and is preserved when the instance is terminated
+          - Runtime credentials are fetched from Secrets Manager, never embedded in user data
+        mutable: review-required
+    Properties:
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: false
+            Encrypted: true
+            VolumeSize: 20
+            VolumeType: gp3
+      CreditSpecification:
+        CPUCredits: standard
+      DisableApiTermination: true
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 1
+        HttpTokens: required
+        InstanceMetadataTags: disabled
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeleteOnTermination: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref OriginSecurityGroup
+          SubnetId: !Ref PublicSubnet
+      PropagateTagsToVolumeOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-web'
+        - Key: Workload
+          Value: wedding-invitation
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            set -Eeuo pipefail
+            exec > >(tee /var/log/wedding-bootstrap.log | logger -t wedding-bootstrap -s 2>/dev/console) 2>&1
+
+            dnf install -y nodejs22 nodejs22-npm mariadb105-server unzip
+            alternatives --set node /usr/bin/node-22
+            systemctl enable --now mariadb
+
+            install -d -m 0755 /opt/wedding-app
+            aws s3 cp 's3://${ArtifactBucket}/${ArtifactKey}' /tmp/wedding-app.zip --region '${AWS::Region}'
+            unzip -oq /tmp/wedding-app.zip -d /opt/wedding-app || test -f /opt/wedding-app/package.json
+
+            for attempt in $(seq 1 12); do
+              if aws secretsmanager get-secret-value \
+                --secret-id '${RuntimeSecretArn}' \
+                --region '${AWS::Region}' \
+                --query SecretString \
+                --output text > /run/wedding-secret.json; then
+                break
+              fi
+              sleep 10
+            done
+            test -s /run/wedding-secret.json
+            chmod 0600 /run/wedding-secret.json
+
+            python3 - <<'PY'
+            import json
+            from pathlib import Path
+
+            secret = json.loads(Path('/run/wedding-secret.json').read_text(encoding='utf-8'))
+            values = {
+                'PORT': '8080',
+                'DB_HOST': '127.0.0.1',
+                'DB_PORT': '3306',
+                'DB_USER': 'wedding_app',
+                'DB_PASSWORD': secret['DB_PASSWORD'],
+                'DB_NAME': 'thiep_cuoi_app',
+                'DB_CONNECTION_LIMIT': '10',
+                'ADMIN_USERNAME': secret['ADMIN_USERNAME'],
+                'ADMIN_PASSWORD': secret['ADMIN_PASSWORD'],
+                'ADMIN_SESSION_SECRET': secret['ADMIN_SESSION_SECRET'],
+                'ADMIN_API_KEY': secret.get('ADMIN_API_KEY', ''),
+                'ADMIN_SESSION_TTL_SECONDS': secret.get('ADMIN_SESSION_TTL_SECONDS', '28800'),
+                'WISHES_REQUIRE_APPROVAL': secret.get('WISHES_REQUIRE_APPROVAL', 'false'),
+                'NODE_ENV': 'production',
+            }
+            lines = [f'{key}={json.dumps(str(value), ensure_ascii=False)}' for key, value in values.items()]
+            Path('/opt/wedding-app/.env').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+            PY
+
+            DB_PASSWORD=$(python3 -c "import json; print(json.load(open('/run/wedding-secret.json'))['DB_PASSWORD'])")
+            mariadb --protocol=socket <<SQL
+            CREATE DATABASE IF NOT EXISTS thiep_cuoi_app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+            CREATE USER IF NOT EXISTS 'wedding_app'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
+            CREATE USER IF NOT EXISTS 'wedding_app'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
+            ALTER USER 'wedding_app'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
+            ALTER USER 'wedding_app'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
+            GRANT ALL PRIVILEGES ON thiep_cuoi_app.* TO 'wedding_app'@'localhost';
+            GRANT ALL PRIVILEGES ON thiep_cuoi_app.* TO 'wedding_app'@'127.0.0.1';
+            GRANT CREATE ON *.* TO 'wedding_app'@'localhost';
+            GRANT CREATE ON *.* TO 'wedding_app'@'127.0.0.1';
+            FLUSH PRIVILEGES;
+            SQL
+
+            chown -R ec2-user:ec2-user /opt/wedding-app
+            chmod 0600 /opt/wedding-app/.env
+            cd /opt/wedding-app
+            runuser -u ec2-user -- /usr/bin/npm-22 ci --omit=dev
+            runuser -u ec2-user -- /usr/bin/npm-22 run db:init
+            if [ -f /opt/wedding-app/deployment-data.json ]; then
+              runuser -u ec2-user -- /usr/bin/npm-22 run db:import -- /opt/wedding-app/deployment-data.json
+              rm -f /opt/wedding-app/deployment-data.json
+            fi
+
+            cat > /etc/systemd/system/wedding-app.service <<'UNIT'
+            [Unit]
+            Description=Wedding invitation Node.js application
+            After=network-online.target mariadb.service
+            Wants=network-online.target
+            Requires=mariadb.service
+
+            [Service]
+            Type=simple
+            User=ec2-user
+            Group=ec2-user
+            WorkingDirectory=/opt/wedding-app
+            ExecStart=/usr/bin/node-22 src/server.js
+            Restart=always
+            RestartSec=5
+            NoNewPrivileges=true
+            PrivateTmp=true
+            ProtectHome=true
+            ProtectSystem=full
+            ReadWritePaths=/opt/wedding-app/uploads
+
+            [Install]
+            WantedBy=multi-user.target
+            UNIT
+
+            install -d -o ec2-user -g ec2-user -m 0750 /opt/wedding-app/uploads
+            systemctl daemon-reload
+            systemctl enable --now wedding-app.service
+            rm -f /run/wedding-secret.json /tmp/wedding-app.zip
+
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent http://127.0.0.1:8080/api/health >/dev/null; then
+                exit 0
+              fi
+              sleep 5
+            done
+            systemctl status wedding-app.service --no-pager
+            exit 1
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: stable origin address keeps the CloudFront origin valid across instance restarts
+        must:
+          - Release when the workload is permanently removed to stop IPv4 hourly charges
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-origin'
+
+  ElasticIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !GetAtt ElasticIp.AllocationId
+      InstanceId: !Ref WebInstance
+
+  SecurityResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: applies browser security headers at the public HTTPS edge
+        must:
+          - Keep HSTS and MIME sniffing protection enabled
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-security-headers'
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: SAMEORIGIN
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+            Preload: true
+          XSSProtection:
+            ModeBlock: true
+            Override: true
+            Protection: true
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn: ElasticIpAssociation
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: supplies public HTTPS and shields the EC2 origin from direct internet ingress
+        must:
+          - Dynamic API/admin requests remain uncached
+          - Forward Authorization, Host, cookies, query strings, and request bodies to Express
+        mutable: change-with-constraints
+    Properties:
+      DistributionConfig:
+        Comment: !Sub '${AWS::StackName} wedding invitation'
+        DefaultCacheBehavior:
+          AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3
+          ResponseHeadersPolicyId: !Ref SecurityResponseHeadersPolicy
+          TargetOriginId: wedding-origin
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - CustomOriginConfig:
+              HTTPPort: 8080
+              OriginKeepaliveTimeout: 5
+              OriginProtocolPolicy: http-only
+              OriginReadTimeout: 30
+            DomainName: !GetAtt WebInstance.PublicDnsName
+            Id: wedding-origin
+            OriginCustomHeaders:
+              - HeaderName: X-Forwarded-Proto
+                HeaderValue: https
+        PriceClass: PriceClass_200
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+      Tags:
+        - Key: Workload
+          Value: wedding-invitation
+
+Outputs:
+  WebsiteUrl:
+    Description: Public HTTPS URL for the wedding invitation.
+    Value: !Sub 'https://${Distribution.DomainName}'
+  DistributionId:
+    Description: CloudFront distribution ID.
+    Value: !Ref Distribution
+  InstanceId:
+    Description: EC2 instance ID for Systems Manager operations.
+    Value: !Ref WebInstance
+  OriginElasticIp:
+    Description: Stable origin IPv4 address.
+    Value: !Ref ElasticIp

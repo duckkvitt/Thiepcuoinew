@@ -1,0 +1,5 @@
+{
+  "commands": [
+    "nl -ba /var/lib/cloud/instance/scripts/part-001 | sed -n '1,90p'"
+  ]
+}

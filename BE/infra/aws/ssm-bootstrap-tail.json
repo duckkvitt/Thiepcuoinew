@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "tail -n 60 /var/log/cloud-init-output.log",
+    "ps -eo pid,etime,cmd | grep -E 'dnf|npm|node|cloud-init' | grep -v grep || true"
+  ]
+}

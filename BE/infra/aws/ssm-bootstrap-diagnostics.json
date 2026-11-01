@@ -1,0 +1,7 @@
+{
+  "commands": [
+    "cloud-init status --long || true",
+    "tail -n 120 /var/log/cloud-init-output.log",
+    "systemctl status wedding-app.service --no-pager || true"
+  ]
+}

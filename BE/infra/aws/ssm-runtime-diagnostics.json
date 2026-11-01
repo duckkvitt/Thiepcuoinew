@@ -1,0 +1,8 @@
+{
+  "commands": [
+    "journalctl -t wedding-bootstrap --since '2026-11-01 11:44:00' --no-pager -n 120",
+    "systemctl is-active mariadb.service || true",
+    "systemctl is-active wedding-app.service || true",
+    "find /opt/wedding-app -maxdepth 2 -type f -printf '%P\\n' 2>/dev/null | sort | tail -n 80"
+  ]
+}

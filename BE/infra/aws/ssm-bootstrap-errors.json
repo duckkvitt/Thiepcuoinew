@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "grep -nEi 'error|failed|no match|not found|cannot|unable|exit code' /var/log/cloud-init-output.log | tail -n 100 || true",
+    "journalctl -u cloud-final.service --no-pager -n 80"
+  ]
+}
