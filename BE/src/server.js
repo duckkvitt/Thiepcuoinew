@@ -144,7 +144,7 @@ app.post('/api/admin/login', loginLimiter, async (req, res, next) => {
 app.post(
   '/api/admin/uploads',
   requireAdmin,
-  express.raw({ type: Object.keys(imageTypes), limit: '8mb' }),
+  express.raw({ type: Object.keys(imageTypes), limit: '10mb' }),
   async (req, res, next) => {
     try {
       const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
@@ -555,9 +555,15 @@ app.use((req, res, next) => {
   });
 });
 
-app.use((error, _req, res, _next) => {
+app.use((error, req, res, _next) => {
   if (error instanceof ZodError) {
     return res.status(400).json({ message: 'Dữ liệu gửi lên chưa hợp lệ.', issues: error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })) });
+  }
+  if (error?.type === 'entity.too.large') {
+    const message = req.path === '/api/admin/audio-uploads'
+      ? 'Tệp nhạc tải lên phải nhỏ hơn 25 MB.'
+      : 'Ảnh tải lên phải nhỏ hơn 10 MB.';
+    return res.status(413).json({ message });
   }
   console.error(error);
   res.status(500).json({ message: 'Máy chủ đang bận. Vui lòng thử lại sau.' });

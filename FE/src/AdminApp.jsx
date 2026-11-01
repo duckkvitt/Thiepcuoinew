@@ -6,6 +6,7 @@ import {
   Trash2, Type, UploadCloud, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
+import { prepareImageForUpload } from './imageUpload.js';
 import { formatVietnameseLunarDate } from './lunarDate.js';
 import { FONT_OPTIONS, INVITATION_PART_DEFAULTS, INVITATION_PARTS, TYPOGRAPHY_DEFAULTS, TYPOGRAPHY_SECTIONS, normalizeTypography } from './typography.js';
 import './admin.css';
@@ -258,15 +259,14 @@ export default function AdminApp() {
 
   const uploadImage = async (file, target, applyImage) => {
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setNotice('Ảnh không được lớn hơn 8 MB.');
-      return;
-    }
     setUploading(target); setNotice('');
     try {
-      const response = await adminApi.uploadImage(token, file);
+      const prepared = await prepareImageForUpload(file);
+      const response = await adminApi.uploadImage(token, prepared.file);
       applyImage(response.imageUrl);
-      setNotice('Đã tải ảnh lên. Hãy nhấn “Lưu thay đổi” để áp dụng vào thiệp.');
+      setNotice(prepared.optimized
+        ? 'Ảnh lớn đã được tự động tối ưu xuống dưới 10 MB và tải lên. Hãy nhấn “Lưu thay đổi” để áp dụng vào thiệp.'
+        : 'Đã tải ảnh lên. Hãy nhấn “Lưu thay đổi” để áp dụng vào thiệp.');
     } catch (error) {
       if (error.status === 401) logout();
       else setNotice(error.message);
@@ -453,7 +453,7 @@ export default function AdminApp() {
             <label className={`admin-upload${uploading === 'hero' ? ' loading' : ''}`}><UploadCloud size={17} />{uploading === 'hero' ? 'Đang tải...' : 'Chọn ảnh từ máy'}
               <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={Boolean(uploading)} onChange={(event) => { uploadImage(event.target.files?.[0], 'hero', (imageUrl) => updateRoot('heroImage', imageUrl)); event.target.value = ''; }} />
             </label>
-          </div></Field>
+          </div><small className="admin-field-hint">Ảnh lớn sẽ được tự động tối ưu xuống dưới 10 MB trước khi tải lên thiệp.</small></Field>
         </div>
         {data.heroImage && <div className="admin-hero-preview"><img src={data.heroImage} alt="Xem trước ảnh bìa" /><span>Xem trước ảnh bìa</span></div>}
       </Panel>
