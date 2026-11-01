@@ -61,6 +61,40 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
   const brideFamily = families.find((item) => item.side === 'bride');
   const groomHome = locations.find((item) => item.location_type === 'groom_home');
   const brideHome = locations.find((item) => item.location_type === 'bride_home');
+  const storedEvents = parseJson(invitation.event_details, {});
+  const legacyVenue = {
+    name: invitation.venue_name,
+    address: invitation.venue_address,
+    mapUrl: invitation.directions_url || invitation.map_embed_url || '',
+    mapEmbedUrl: invitation.map_embed_url || '',
+    directionsUrl: invitation.directions_url || ''
+  };
+  const normalizeEvent = (side, home, fallbackName) => {
+    const stored = storedEvents?.[side] || {};
+    const storedVenue = stored.venue || {};
+    return {
+      side,
+      label: side === 'groom' ? 'Nhà trai' : 'Nhà gái',
+      weddingDate: stored.weddingDate || invitation.wedding_date,
+      ceremonyTime: stored.ceremonyTime || invitation.ceremony_time,
+      receptionGuestTime: stored.receptionGuestTime || invitation.reception_guest_time,
+      receptionTime: stored.receptionTime || invitation.reception_time,
+      lunarDate: stored.lunarDate ?? invitation.lunar_date ?? '',
+      ceremonyVenue: stored.ceremonyVenue || storedVenue.name || home?.name || fallbackName,
+      venue: {
+        name: storedVenue.name || home?.name || legacyVenue.name || fallbackName,
+        address: storedVenue.address || home?.address || legacyVenue.address || '',
+        mapUrl: storedVenue.mapUrl || storedVenue.directionsUrl || storedVenue.mapEmbedUrl || home?.directions_url || home?.map_embed_url || legacyVenue.mapUrl,
+        mapEmbedUrl: storedVenue.mapEmbedUrl || home?.map_embed_url || '',
+        directionsUrl: storedVenue.directionsUrl || home?.directions_url || ''
+      },
+      schedule: Array.isArray(stored.schedule) && stored.schedule.length ? stored.schedule : schedule
+    };
+  };
+  const events = {
+    groom: normalizeEvent('groom', groomHome, 'Tư gia nhà trai'),
+    bride: normalizeEvent('bride', brideHome, 'Tư gia nhà gái')
+  };
 
   return {
     id: invitation.id,
@@ -79,6 +113,7 @@ export async function getInvitationBySlug(slug, { includeUnpublished = false } =
     receptionGuestTime: invitation.reception_guest_time,
     receptionTime: invitation.reception_time,
     lunarDate: invitation.lunar_date,
+    events,
     venue: {
       name: invitation.venue_name,
       address: invitation.venue_address,

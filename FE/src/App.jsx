@@ -18,6 +18,17 @@ const formatWeddingDate = (value) => {
   const date = toLocalDate(value);
   return `${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
 };
+const eventData = (data, event) => ({
+  ...data,
+  weddingDate: event.weddingDate,
+  ceremonyTime: event.ceremonyTime,
+  receptionGuestTime: event.receptionGuestTime,
+  receptionTime: event.receptionTime,
+  lunarDate: event.lunarDate,
+  ceremonyVenue: event.ceremonyVenue,
+  schedule: event.schedule,
+  venue: { ...data.venue, ...event.venue }
+});
 
 function EntryGate({ data, inviteeName, onOpening, onOpened }) {
   const [opening, setOpening] = useState(false);
@@ -272,13 +283,10 @@ function Reception({ data, onRsvp }) {
   </section>;
 }
 
-function Venue({ data }) {
-  const locations = [
-    { key: 'groom-home', label: 'Nhà chú rể', ...data.venue.groomHome },
-    { key: 'bride-home', label: 'Nhà cô dâu', ...data.venue.brideHome }
-  ];
+function Venue({ data, label = '' }) {
+  const locations = [{ key: 'event-venue', label: label || 'Địa điểm tổ chức', ...data.venue }];
   return <section id="venue" className="section venue-section typography-scope" style={typographyStyle(data.typography, 'venue')}>
-    <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title="Địa điểm tư gia" />
+    <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title={label ? `Địa điểm ${label.toLowerCase()}` : 'Địa điểm tổ chức'} />
     <div className="venue-grid">{locations.map((location) => {
       const mapUrl = location.mapUrl || location.directionsUrl || location.mapEmbedUrl;
       return <article className="location-card" key={location.key}>
@@ -510,9 +518,18 @@ export default function App() {
     </div>
   </main>;
 
+  const audience = isPreviewMode ? (data.previewAudience || 'both') : (invitee?.audience || 'both');
+  const allEvents = data.events || {};
+  const visibleEvents = ['groom', 'bride']
+    .filter((side) => audience === 'both' || audience === side)
+    .map((side) => allEvents[side])
+    .filter(Boolean);
+  const primaryEvent = visibleEvents[0] || allEvents.groom;
+  const entryData = primaryEvent ? eventData(data, primaryEvent) : data;
+
   return <>
     {data.music?.url && <audio ref={audioRef} src={data.music.url} loop preload="metadata" onPlay={() => setMusicPlaying(true)} onPause={() => setMusicPlaying(false)} />}
-    {!hasEntered && <EntryGate data={data} inviteeName={invitee?.name} onOpening={startMusic} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+    {!hasEntered && <EntryGate data={entryData} inviteeName={invitee?.name} onOpening={startMusic} onOpened={() => { setHasEntered(true); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
     {hasEntered && data.music?.enabled && data.music?.url && <button
       type="button"
       className={`music-control${musicPlaying ? ' playing' : ''}`}
@@ -524,12 +541,19 @@ export default function App() {
     </button>}
     <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
-    <Hero data={data} />
-    <InvitationCard data={data} />
+    <Hero data={entryData} />
     <Gallery data={data} />
-    <Reception data={data} onRsvp={() => setModal('rsvp')} />
-    <Venue data={data} />
-    <TimelineSection data={data} />
+    {visibleEvents.map((event) => {
+      const detail = eventData(data, event);
+      const label = event.label;
+      return <div key={event.side} className="wedding-event-content">
+        {audience === 'both' && <div className="event-divider"><span>{event.label}</span></div>}
+        <InvitationCard data={detail} />
+        <Reception data={detail} onRsvp={() => setModal('rsvp')} />
+        <Venue data={detail} label={label} />
+        <TimelineSection data={detail} />
+      </div>;
+    })}
     <Guestbook data={data} wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
     <GiftSection data={data} onOpen={() => setModal('gift')} />
     {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} initialGuestName={invitee?.name} />}

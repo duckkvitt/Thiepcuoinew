@@ -88,6 +88,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-family-grid article { display: grid; gap: 15px; padding: 22px; background: #faf8f5; border: 1px solid #eee6dc; border-radius: 12px; }
 .admin-family-grid h3, .admin-subtitle { margin: 0 0 4px; color: var(--admin-wine); font: 600 21px 'Cormorant Garamond', serif; }
 .admin-location-editors { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+#events .admin-location-editors { grid-template-columns: 1fr; }
 .admin-location-editors > article { padding: 20px; background: #faf8f5; border: 1px solid #eee6dc; border-radius: 12px; }
 .admin-location-editors h3 { display: flex; align-items: center; gap: 9px; margin: 0 0 18px; color: var(--admin-wine); font: 600 21px 'Cormorant Garamond', serif; }
 .admin-location-editors h3 span { display: grid; place-items: center; width: 27px; height: 27px; color: #fff; background: var(--admin-wine); border-radius: 50%; font: 600 9px 'Be Vietnam Pro', sans-serif; }
@@ -95,6 +96,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .admin-repeat-list { display: grid; gap: 12px; }
 .admin-image-row, .admin-schedule-row { display: grid; align-items: end; gap: 14px; padding: 14px; background: #faf8f5; border: 1px solid #eee6dc; border-radius: 11px; }
+.admin-event-editor { padding: 22px; border: 1px solid #eee6dc; border-radius: 14px; background: #fffdfa; }
+.admin-event-editor + .admin-event-editor { margin-top: 18px; }
+.admin-event-editor > h3 { margin: 0 0 18px; color: #6f1d27; font: 600 22px/1.2 Georgia, serif; }
+.admin-event-editor > h4 { margin: 26px 0 12px; color: #6f1d27; font-size: 14px; text-transform: uppercase; letter-spacing: .06em; }
 .admin-image-row { grid-template-columns: 72px 1fr auto; }
 .admin-thumb { display: grid; place-items: center; width: 72px; height: 72px; color: #b59e91; background: #eee7df; border-radius: 8px; overflow: hidden; }
 .admin-thumb img { width: 100%; height: 100%; object-fit: cover; }

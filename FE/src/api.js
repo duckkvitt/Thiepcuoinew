@@ -90,11 +90,11 @@ export const adminApi = {
   updateInvitation: (token, payload) => adminRequest(`/invitations/${slug}`, { token, method: 'PUT', body: JSON.stringify(payload) }),
   getSubmissions: (token) => adminRequest(`/invitations/${slug}/submissions`, { token }),
   getInvitees: (token) => adminRequest(`/invitations/${slug}/invitees`, { token }),
-  createInvitee: (token, name) => adminRequest(`/invitations/${slug}/invitees`, {
-    token, method: 'POST', body: JSON.stringify({ name })
+  createInvitee: (token, name, audience) => adminRequest(`/invitations/${slug}/invitees`, {
+    token, method: 'POST', body: JSON.stringify({ name, audience })
   }),
   updateInvitee: (token, invitee) => adminRequest(`/invitations/${slug}/invitees/${invitee.id}`, {
-    token, method: 'PATCH', body: JSON.stringify({ name: invitee.name, isActive: invitee.isActive })
+    token, method: 'PATCH', body: JSON.stringify({ name: invitee.name, audience: invitee.audience, isActive: invitee.isActive })
   }),
   deleteInvitee: (token, id) => adminRequest(`/invitations/${slug}/invitees/${id}`, { token, method: 'DELETE' }),
   uploadImage: (token, file) => adminUpload(token, file),

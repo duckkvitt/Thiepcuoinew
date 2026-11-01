@@ -60,6 +60,30 @@ const normalizeTime = (value) => {
   const time = clean(value, 8);
   return /^\d{2}:\d{2}(:\d{2})?$/.test(time) ? (time.length === 5 ? `${time}:00` : time) : null;
 };
+const normalizeAudience = (value) => ['groom', 'bride', 'both'].includes(value) ? value : 'both';
+const normalizeWeddingEvent = (side, source = {}, fallback = {}) => {
+  const schedule = Array.isArray(source.schedule) ? source.schedule : (Array.isArray(fallback.schedule) ? fallback.schedule : []);
+  return {
+    side,
+    label: side === 'groom' ? 'Nhà trai' : 'Nhà gái',
+    weddingDate: clean(source.weddingDate || fallback.weddingDate, 10),
+    ceremonyTime: normalizeTime(source.ceremonyTime || fallback.ceremonyTime),
+    receptionGuestTime: normalizeTime(source.receptionGuestTime || fallback.receptionGuestTime),
+    receptionTime: normalizeTime(source.receptionTime || fallback.receptionTime),
+    lunarDate: clean(source.lunarDate ?? fallback.lunarDate, 150),
+    ceremonyVenue: clean(source.ceremonyVenue || source.venue?.name || fallback.ceremonyVenue, 200),
+    venue: {
+      name: clean(source.venue?.name || fallback.venue?.name, 200),
+      address: clean(source.venue?.address || fallback.venue?.address, 500),
+      mapUrl: clean(source.venue?.mapUrl || source.venue?.directionsUrl || source.venue?.mapEmbedUrl || fallback.venue?.mapUrl, 2000)
+    },
+    schedule: schedule.map((item) => ({
+      time_label: normalizeTime(item?.time_label)?.slice(0, 5) || '',
+      title: clean(item?.title, 150),
+      icon: clean(item?.icon || 'heart', 30)
+    }))
+  };
+};
 const imageTypes = {
   'image/jpeg': { extension: 'jpg', valid: (buffer) => buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff },
   'image/png': { extension: 'png', valid: (buffer) => buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
@@ -210,28 +234,40 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
   const data = req.body || {};
   const families = Array.isArray(data.families) ? data.families : [];
   const gallery = Array.isArray(data.gallery) ? data.gallery : [];
-  const schedule = Array.isArray(data.schedule) ? data.schedule : [];
   const dressColors = Array.isArray(data.dressColors) ? data.dressColors.map((item) => clean(item, 20)).filter(Boolean) : [];
-  const groomHome = data.venue?.groomHome || {};
-  const brideHome = data.venue?.brideHome || {};
-  const ceremonyTime = normalizeTime(data.ceremonyTime);
-  const receptionGuestTime = normalizeTime(data.receptionGuestTime);
-  const receptionTime = normalizeTime(data.receptionTime);
+  const legacyEvent = {
+    weddingDate: data.weddingDate,
+    ceremonyTime: data.ceremonyTime,
+    receptionGuestTime: data.receptionGuestTime,
+    receptionTime: data.receptionTime,
+    lunarDate: data.lunarDate,
+    ceremonyVenue: data.ceremonyVenue,
+    venue: data.venue,
+    schedule: data.schedule
+  };
+  const events = {
+    groom: normalizeWeddingEvent('groom', data.events?.groom, { ...legacyEvent, venue: data.venue?.groomHome || data.venue }),
+    bride: normalizeWeddingEvent('bride', data.events?.bride, { ...legacyEvent, venue: data.venue?.brideHome || data.venue })
+  };
+  const eventList = Object.values(events);
   const requestedMusicVolume = Number(data.music?.volume ?? 0.35);
   const musicVolume = Number.isFinite(requestedMusicVolume) ? Math.min(1, Math.max(0, requestedMusicVolume)) : 0.35;
 
-  if (!clean(data.groomName, 120) || !clean(data.brideName, 120) || !/^\d{4}-\d{2}-\d{2}$/.test(clean(data.weddingDate, 10)) ||
-      !clean(data.invitationHeading, 150) || !clean(data.announcementText, 500) || !clean(data.ceremonyIntro, 255) || !clean(data.ceremonyVenue, 200) ||
-      !ceremonyTime || !receptionGuestTime || !receptionTime || !clean(data.venue?.name, 200) || !clean(data.venue?.address, 500) ||
-      !clean(groomHome.name, 200) || !clean(groomHome.address, 500) || !clean(brideHome.name, 200) || !clean(brideHome.address, 500) ||
-      families.length !== 2 || gallery.length < 1 || gallery.length > 30 || schedule.length < 1 || schedule.length > 30 ||
+  const invalidEvent = eventList.some((event) =>
+    !/^\d{4}-\d{2}-\d{2}$/.test(event.weddingDate) || !event.ceremonyTime || !event.receptionGuestTime || !event.receptionTime ||
+    !event.ceremonyVenue || !event.venue.name || !event.venue.address || event.schedule.length < 1 || event.schedule.length > 30 ||
+    event.schedule.some((item) => !item.time_label || !item.title)
+  );
+  if (!clean(data.groomName, 120) || !clean(data.brideName, 120) ||
+      !clean(data.invitationHeading, 150) || !clean(data.announcementText, 500) || !clean(data.ceremonyIntro, 255) ||
+      invalidEvent || families.length !== 2 || gallery.length < 1 || gallery.length > 30 ||
       dressColors.length < 1 || dressColors.length > 10) {
     return res.status(400).json({ message: 'Dữ liệu thiệp chưa đầy đủ hoặc không hợp lệ.' });
   }
-  const [groomMapUrl, brideMapUrl] = await Promise.all([
-    resolveGoogleMapsUrl(groomHome.mapUrl || groomHome.directionsUrl || groomHome.mapEmbedUrl),
-    resolveGoogleMapsUrl(brideHome.mapUrl || brideHome.directionsUrl || brideHome.mapEmbedUrl)
-  ]);
+  const [groomMapUrl, brideMapUrl] = await Promise.all(eventList.map((event) => resolveGoogleMapsUrl(event.venue.mapUrl)));
+  events.groom.venue.mapUrl = groomMapUrl;
+  events.bride.venue.mapUrl = brideMapUrl;
+  const primaryEvent = events.groom;
 
   const connection = await pool.getConnection();
   try {
@@ -246,15 +282,15 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
       `UPDATE invitations SET groom_name = ?, bride_name = ?, tagline = ?, invitation_heading = ?, announcement_text = ?,
        groom_role = ?, bride_role = ?, ceremony_intro = ?, ceremony_venue = ?, wedding_date = ?, ceremony_time = ?,
        reception_guest_time = ?, reception_time = ?, lunar_date = ?, venue_name = ?, venue_address = ?,
-       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?, typography_settings = ?,
+       map_embed_url = ?, directions_url = ?, hero_image = ?, dress_colors = ?, gift_details = ?, event_details = ?, typography_settings = ?,
        music_url = ?, music_title = ?, music_enabled = ?, music_volume = ?, is_published = ?
        WHERE id = ?`,
       [
         clean(data.groomName, 120), clean(data.brideName, 120), clean(data.tagline, 255), clean(data.invitationHeading, 150),
         clean(data.announcementText, 500), clean(data.groomRole, 100), clean(data.brideRole, 100),
-        clean(data.ceremonyIntro, 255), clean(data.ceremonyVenue, 200), clean(data.weddingDate, 10), ceremonyTime,
-        receptionGuestTime, receptionTime, clean(data.lunarDate, 150), clean(data.venue.name, 200), clean(data.venue.address, 500),
-        clean(data.venue.mapEmbedUrl, 2000), clean(data.venue.directionsUrl, 2000), clean(data.heroImage, 255),
+        clean(data.ceremonyIntro, 255), primaryEvent.ceremonyVenue, primaryEvent.weddingDate, primaryEvent.ceremonyTime,
+        primaryEvent.receptionGuestTime, primaryEvent.receptionTime, primaryEvent.lunarDate, primaryEvent.venue.name, primaryEvent.venue.address,
+        '', primaryEvent.venue.mapUrl, clean(data.heroImage, 255),
         JSON.stringify(dressColors), JSON.stringify({
           groom: {
             label: clean(data.gift?.groom?.label || 'Chú rể', 50),
@@ -272,7 +308,7 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
             message: clean(data.gift?.bride?.message, 255),
             qrImage: clean(data.gift?.bride?.qrImage, 255)
           }
-        }), JSON.stringify(normalizeTypographySettings(data.typography)), clean(data.music?.url, 500), clean(data.music?.title, 150), data.music?.enabled === true ? 1 : 0,
+        }), JSON.stringify(events), JSON.stringify(normalizeTypographySettings(data.typography)), clean(data.music?.url, 500), clean(data.music?.title, 150), data.music?.enabled === true ? 1 : 0,
         musicVolume, data.isPublished === false ? 0 : 1, invitation.id
       ]
     );
@@ -288,8 +324,8 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
 
     await connection.query('DELETE FROM wedding_locations WHERE invitation_id = ?', [invitation.id]);
     for (const [index, location] of [
-      { type: 'groom_home', ...groomHome, mapUrl: groomMapUrl },
-      { type: 'bride_home', ...brideHome, mapUrl: brideMapUrl }
+      { type: 'groom_home', ...events.groom.venue },
+      { type: 'bride_home', ...events.bride.venue }
     ].entries()) {
       await connection.query(
         `INSERT INTO wedding_locations (invitation_id, location_type, name, address, map_embed_url, directions_url, display_order)
@@ -309,7 +345,7 @@ app.put('/api/admin/invitations/:slug', requireAdmin, async (req, res, next) => 
     }
 
     await connection.query('DELETE FROM wedding_schedule WHERE invitation_id = ?', [invitation.id]);
-    for (const [index, item] of schedule.entries()) {
+    for (const [index, item] of primaryEvent.schedule.entries()) {
       const time = normalizeTime(item.time_label);
       const title = clean(item.title, 150);
       if (!time || !title) throw new Error('Mốc thời gian trong lịch trình chưa hợp lệ.');
@@ -357,7 +393,7 @@ app.get('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res, 
     const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
     if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
     const [rows] = await pool.query(
-      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+      `SELECT id, name, token, audience, is_active AS isActive, view_count AS viewCount,
               last_opened_at AS lastOpenedAt, created_at AS createdAt
        FROM invitees WHERE invitation_id = ? ORDER BY created_at DESC, id DESC`,
       [invitation.id]
@@ -371,16 +407,17 @@ app.get('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res, 
 app.post('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res, next) => {
   try {
     const name = clean(req.body?.name, 150);
+    const audience = normalizeAudience(req.body?.audience);
     if (!name) return res.status(400).json({ message: 'Vui lòng nhập tên người được mời.' });
     const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
     if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
     const token = randomUUID().replaceAll('-', '');
     const [result] = await pool.query(
-      'INSERT INTO invitees (invitation_id, name, token) VALUES (?, ?, ?)',
-      [invitation.id, name, token]
+      'INSERT INTO invitees (invitation_id, name, token, audience) VALUES (?, ?, ?, ?)',
+      [invitation.id, name, token, audience]
     );
     const [[invitee]] = await pool.query(
-      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+      `SELECT id, name, token, audience, is_active AS isActive, view_count AS viewCount,
               last_opened_at AS lastOpenedAt, created_at AS createdAt
        FROM invitees WHERE id = ?`,
       [result.insertId]
@@ -394,16 +431,17 @@ app.post('/api/admin/invitations/:slug/invitees', requireAdmin, async (req, res,
 app.patch('/api/admin/invitations/:slug/invitees/:id', requireAdmin, async (req, res, next) => {
   try {
     const name = clean(req.body?.name, 150);
+    const audience = normalizeAudience(req.body?.audience);
     if (!name) return res.status(400).json({ message: 'Tên người được mời không được để trống.' });
     const invitation = await getInvitationBySlug(req.params.slug, { includeUnpublished: true });
     if (!invitation) return res.status(404).json({ message: 'Không tìm thấy thiệp cưới.' });
     const [result] = await pool.query(
-      'UPDATE invitees SET name = ?, is_active = ? WHERE id = ? AND invitation_id = ?',
-      [name, req.body?.isActive === false ? 0 : 1, Number(req.params.id), invitation.id]
+      'UPDATE invitees SET name = ?, audience = ?, is_active = ? WHERE id = ? AND invitation_id = ?',
+      [name, audience, req.body?.isActive === false ? 0 : 1, Number(req.params.id), invitation.id]
     );
     if (!result.affectedRows) return res.status(404).json({ message: 'Không tìm thấy khách mời.' });
     const [[invitee]] = await pool.query(
-      `SELECT id, name, token, is_active AS isActive, view_count AS viewCount,
+      `SELECT id, name, token, audience, is_active AS isActive, view_count AS viewCount,
               last_opened_at AS lastOpenedAt, created_at AS createdAt
        FROM invitees WHERE id = ?`,
       [Number(req.params.id)]
@@ -472,7 +510,7 @@ app.get('/api/invitations/:slug/invitees/:token', async (req, res, next) => {
     const token = clean(req.params.token, 64);
     if (!/^[a-f0-9]{32}$/i.test(token)) return res.status(404).json({ message: 'Link mời không hợp lệ.' });
     const [[invitee]] = await pool.query(
-      `SELECT guests.id, guests.name
+      `SELECT guests.id, guests.name, guests.audience
        FROM invitees guests
        JOIN invitations invitation ON invitation.id = guests.invitation_id
        WHERE invitation.slug = ? AND invitation.is_published = TRUE
@@ -485,7 +523,7 @@ app.get('/api/invitations/:slug/invitees/:token', async (req, res, next) => {
       'UPDATE invitees SET view_count = view_count + 1, last_opened_at = CURRENT_TIMESTAMP WHERE id = ?',
       [invitee.id]
     );
-    res.json({ name: invitee.name });
+    res.json({ name: invitee.name, audience: invitee.audience });
   } catch (error) {
     next(error);
   }

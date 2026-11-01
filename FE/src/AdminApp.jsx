@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Copy, Eye, EyeOff,
+  ArrowDown, ArrowUp, Check, ChevronRight, Copy, Eye, EyeOff,
   Expand, Gift, Image, LayoutDashboard, Link2, LocateFixed, LogOut, MapPin,
   MessageSquare, MonitorSmartphone, Music2, Plus, Save, Settings, Shrink,
   Trash2, Type, UploadCloud, UserPlus, Users, X
@@ -12,9 +12,29 @@ import { FONT_OPTIONS, INVITATION_PART_DEFAULTS, INVITATION_PARTS, TYPOGRAPHY_DE
 import './admin.css';
 
 const tokenKey = 'wedding-admin-token';
+const audienceOptions = [
+  ['groom', 'Nhà trai'],
+  ['bride', 'Nhà gái'],
+  ['both', 'Cả hai']
+];
 const normalizeInvitationGift = (invitation) => {
   const gift = invitation.gift || {};
   const account = (source, label) => ({ label, bankName: '', accountName: '', accountNumber: '', message: '', qrImage: '', ...(source || {}) });
+  const normalizeEvent = (side, label, legacyVenue) => {
+    const stored = invitation.events?.[side] || {};
+    return {
+      side,
+      label,
+      weddingDate: stored.weddingDate || invitation.weddingDate,
+      ceremonyTime: stored.ceremonyTime || invitation.ceremonyTime,
+      receptionGuestTime: stored.receptionGuestTime || invitation.receptionGuestTime,
+      receptionTime: stored.receptionTime || invitation.receptionTime,
+      lunarDate: stored.lunarDate ?? invitation.lunarDate ?? '',
+      ceremonyVenue: stored.ceremonyVenue || stored.venue?.name || legacyVenue?.name || '',
+      venue: { name: '', address: '', mapUrl: '', ...(legacyVenue || {}), ...(stored.venue || {}) },
+      schedule: Array.isArray(stored.schedule) && stored.schedule.length ? stored.schedule : (invitation.schedule || [])
+    };
+  };
   return {
     ...invitation,
     music: { url: '', title: '', enabled: false, volume: 0.35, ...(invitation.music || {}) },
@@ -22,6 +42,10 @@ const normalizeInvitationGift = (invitation) => {
     gift: {
       groom: account(gift.groom || gift, 'Chú rể'),
       bride: account(gift.bride, 'Cô dâu')
+    },
+    events: {
+      groom: normalizeEvent('groom', 'Nhà trai', invitation.venue?.groomHome || invitation.venue),
+      bride: normalizeEvent('bride', 'Nhà gái', invitation.venue?.brideHome || invitation.venue)
     }
   };
 };
@@ -30,9 +54,8 @@ const sections = [
   ['couple', <Settings size={18} />, 'Thông tin thiệp'],
   ['typography', <Type size={18} />, 'Kiểu chữ'],
   ['families', <Users size={18} />, 'Hai gia đình'],
-  ['venue', <MapPin size={18} />, 'Địa điểm'],
+  ['events', <MapPin size={18} />, 'Ngày giờ & địa điểm'],
   ['gallery', <Image size={18} />, 'Album ảnh'],
-  ['schedule', <CalendarDays size={18} />, 'Lịch trình'],
   ['gift', <Gift size={18} />, 'Quà mừng'],
   ['music', <Music2 size={18} />, 'Nhạc nền'],
   ['invitees', <Link2 size={18} />, 'Link khách mời'],
@@ -92,12 +115,45 @@ function RowActions({ index, length, onMove, onRemove }) {
   </div>;
 }
 
+function WeddingEventEditor({ event, onChange, onDateChange, onVenueChange, onScheduleChange }) {
+  const updateSchedule = (index, key, value) => onScheduleChange((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
+  const moveSchedule = (index, direction) => onScheduleChange((items) => {
+    const next = [...items]; const target = index + direction;
+    if (target < 0 || target >= next.length) return items;
+    [next[index], next[target]] = [next[target], next[index]];
+    return next;
+  });
+  return <article className="admin-event-editor">
+    <h3>{event.label}</h3>
+    <div className="admin-form-grid">
+      <Field label="Ngày tổ chức"><input type="date" value={String(event.weddingDate).slice(0, 10)} onChange={(e) => onDateChange(e.target.value)} /></Field>
+      <Field label="Giờ làm lễ"><input type="time" value={String(event.ceremonyTime).slice(0, 5)} onChange={(e) => onChange('ceremonyTime', e.target.value)} /></Field>
+      <Field label="Giờ đón khách"><input type="time" value={String(event.receptionGuestTime).slice(0, 5)} onChange={(e) => onChange('receptionGuestTime', e.target.value)} /></Field>
+      <Field label="Giờ khai tiệc"><input type="time" value={String(event.receptionTime).slice(0, 5)} onChange={(e) => onChange('receptionTime', e.target.value)} /></Field>
+      <Field label="Ngày âm lịch" wide><input value={event.lunarDate || ''} onChange={(e) => onChange('lunarDate', e.target.value)} /></Field>
+      <Field label="Nơi cử hành" wide><input value={event.ceremonyVenue || ''} onChange={(e) => onChange('ceremonyVenue', e.target.value)} placeholder="TƯ GIA" /></Field>
+      <Field label="Tên địa điểm" wide><input value={event.venue?.name || ''} onChange={(e) => onVenueChange('name', e.target.value)} /></Field>
+      <Field label="Địa chỉ" wide><textarea value={event.venue?.address || ''} onChange={(e) => onVenueChange('address', e.target.value)} /></Field>
+      <Field label="URL Google Maps" wide><input value={event.venue?.mapUrl || ''} onChange={(e) => onVenueChange('mapUrl', e.target.value)} placeholder="Dán link Google Maps hoặc maps.app.goo.gl" /></Field>
+    </div>
+    <h4>Lịch trình {event.label.toLowerCase()}</h4>
+    <div className="admin-repeat-list">{event.schedule.map((item, index) => <article className="admin-schedule-row" key={`${item.time_label}-${index}`}>
+      <Field label="Thời gian"><input type="time" value={String(item.time_label).slice(0, 5)} onChange={(e) => updateSchedule(index, 'time_label', e.target.value)} /></Field>
+      <Field label="Nội dung"><input value={item.title || ''} onChange={(e) => updateSchedule(index, 'title', e.target.value)} /></Field>
+      <Field label="Biểu tượng"><select value={item.icon || 'heart'} onChange={(e) => updateSchedule(index, 'icon', e.target.value)}><option value="heart">Trái tim</option><option value="camera">Máy ảnh</option><option value="glass">Nâng ly</option><option value="rings">Nhẫn cưới</option><option value="cake">Bánh cưới</option></select></Field>
+      <RowActions index={index} length={event.schedule.length} onMove={moveSchedule} onRemove={(itemIndex) => onScheduleChange((items) => items.filter((_, currentIndex) => currentIndex !== itemIndex))} />
+    </article>)}</div>
+    <button type="button" className="admin-add" onClick={() => onScheduleChange((items) => [...items, { time_label: '18:00', title: '', icon: 'heart' }])}><Plus size={17} /> Thêm mốc thời gian</button>
+  </article>;
+}
+
 export default function AdminApp() {
   const [token, setToken] = useState(() => sessionStorage.getItem(tokenKey) || '');
   const [data, setData] = useState(null);
   const [submissions, setSubmissions] = useState({ wishes: [], rsvps: [] });
   const [invitees, setInvitees] = useState([]);
   const [newInviteeName, setNewInviteeName] = useState('');
+  const [newInviteeAudience, setNewInviteeAudience] = useState('both');
   const [inviteeBusy, setInviteeBusy] = useState('');
   const [copiedInvitee, setCopiedInvitee] = useState(null);
   const [loading, setLoading] = useState(Boolean(token));
@@ -137,7 +193,7 @@ export default function AdminApp() {
 
   const sendPreview = useCallback((content) => {
     previewRef.current?.contentWindow?.postMessage(
-      { type: 'wedding-preview-content', content },
+      { type: 'wedding-preview-content', content: { ...content, previewAudience: 'both' } },
       window.location.origin
     );
   }, []);
@@ -179,10 +235,30 @@ export default function AdminApp() {
   };
 
   const updateRoot = (key, value) => setData((current) => ({ ...current, [key]: value }));
-  const updateWeddingDate = (value) => setData((current) => ({
+  const updateEvent = (side, key, value) => setData((current) => ({
     ...current,
-    weddingDate: value,
-    lunarDate: formatVietnameseLunarDate(value)
+    events: { ...current.events, [side]: { ...current.events[side], [key]: value } }
+  }));
+  const updateEventDate = (side, value) => setData((current) => ({
+    ...current,
+    events: {
+      ...current.events,
+      [side]: { ...current.events[side], weddingDate: value, lunarDate: formatVietnameseLunarDate(value) }
+    }
+  }));
+  const updateEventVenue = (side, key, value) => setData((current) => ({
+    ...current,
+    events: {
+      ...current.events,
+      [side]: { ...current.events[side], venue: { ...current.events[side].venue, [key]: value } }
+    }
+  }));
+  const updateEventSchedule = (side, updater) => setData((current) => ({
+    ...current,
+    events: {
+      ...current.events,
+      [side]: { ...current.events[side], schedule: updater(current.events[side].schedule) }
+    }
   }));
   const updateGiftAccount = (owner, key, value) => setData((current) => ({
     ...current,
@@ -225,10 +301,6 @@ export default function AdminApp() {
         parts: { ...current.typography.invitation.parts, [part]: { ...INVITATION_PART_DEFAULTS[part] } }
       }
     }
-  }));
-  const updateVenueLocation = (location, key, value) => setData((current) => ({
-    ...current,
-    venue: { ...current.venue, [location]: { ...current.venue[location], [key]: value } }
   }));
   const updateItem = (group, index, key, value) => setData((current) => ({
     ...current,
@@ -332,9 +404,10 @@ export default function AdminApp() {
     if (!name) return;
     setInviteeBusy('create'); setNotice('');
     try {
-      const invitee = await adminApi.createInvitee(token, name);
+      const invitee = await adminApi.createInvitee(token, name, newInviteeAudience);
       setInvitees((current) => [invitee, ...current]);
       setNewInviteeName('');
+      setNewInviteeAudience('both');
       setNotice(`Đã tạo link mời cho ${invitee.name}.`);
     } catch (error) {
       if (error.status === 401) logout();
@@ -346,6 +419,9 @@ export default function AdminApp() {
 
   const editInviteeName = (id, name) => setInvitees((current) => (
     current.map((item) => item.id === id ? { ...item, name } : item)
+  ));
+  const editInviteeAudience = (id, audience) => setInvitees((current) => (
+    current.map((item) => item.id === id ? { ...item, audience } : item)
   ));
 
   const saveInvitee = async (invitee, changes = {}) => {
@@ -441,13 +517,7 @@ export default function AdminApp() {
           <Field label="Dòng tiêu đề" wide><input value={data.tagline || ''} onChange={(event) => updateRoot('tagline', event.target.value)} /></Field>
           <Field label="Tiêu đề khung thông tin" wide><input value={data.invitationHeading || ''} onChange={(event) => updateRoot('invitationHeading', event.target.value)} placeholder="Thông tin lễ cưới" /></Field>
           <Field label="Lời báo tin" wide><textarea value={data.announcementText || ''} onChange={(event) => updateRoot('announcementText', event.target.value)} placeholder={'TRÂN TRỌNG BÁO TIN\nLỄ THÀNH HÔN CỦA CON CHÚNG TÔI'} /></Field>
-          <Field label="Ngày cưới"><input type="date" value={String(data.weddingDate).slice(0, 10)} onChange={(event) => updateWeddingDate(event.target.value)} /></Field>
-          <Field label="Giờ làm lễ"><input type="time" value={String(data.ceremonyTime).slice(0, 5)} onChange={(event) => updateRoot('ceremonyTime', event.target.value)} /></Field>
-          <Field label="Giờ đón khách"><input type="time" value={String(data.receptionGuestTime).slice(0, 5)} onChange={(event) => updateRoot('receptionGuestTime', event.target.value)} /></Field>
-          <Field label="Giờ khai tiệc"><input type="time" value={String(data.receptionTime).slice(0, 5)} onChange={(event) => updateRoot('receptionTime', event.target.value)} /></Field>
-          <Field label="Ngày âm lịch" wide><input value={data.lunarDate || ''} onChange={(event) => updateRoot('lunarDate', event.target.value)} /><small className="admin-field-hint">Tự động tính theo âm lịch Việt Nam (UTC+7), có xử lý tháng nhuận và Can Chi. Bạn vẫn có thể chỉnh tay.</small></Field>
           <Field label="Dòng giới thiệu nơi cử hành" wide><input value={data.ceremonyIntro || ''} onChange={(event) => updateRoot('ceremonyIntro', event.target.value)} /></Field>
-          <Field label="Nơi cử hành" wide><input value={data.ceremonyVenue || ''} onChange={(event) => updateRoot('ceremonyVenue', event.target.value)} placeholder="TƯ GIA" /></Field>
           <Field label="Ảnh bìa" wide><div className="admin-image-control">
             <input value={data.heroImage || ''} onChange={(event) => updateRoot('heroImage', event.target.value)} placeholder="Đường dẫn hoặc URL ảnh" />
             <label className={`admin-upload${uploading === 'hero' ? ' loading' : ''}`}><UploadCloud size={17} />{uploading === 'hero' ? 'Đang tải...' : 'Chọn ảnh từ máy'}
@@ -512,18 +582,10 @@ export default function AdminApp() {
         </article>)}</div>
       </Panel>
 
-      <Panel id="venue" eyebrow="Bản đồ & chỉ đường" title="Địa điểm nhà trai & nhà gái" previewSection="venue" onPreview={showPreviewSection}>
+      <Panel id="events" eyebrow="Hai ngày trọng đại" title="Ngày giờ, địa điểm và lịch trình từng bên" previewSection="invitation" onPreview={showPreviewSection}>
+        <p className="admin-panel-description">Thiết lập riêng cho nhà trai và nhà gái. Link khách mời sẽ chỉ hiển thị những buổi đã được phân nhóm.</p>
         <div className="admin-location-editors">
-          <article><h3><span>01</span> Nhà chú rể</h3><div className="admin-form-grid">
-            <Field label="Tên địa điểm" wide><input value={data.venue.groomHome?.name || ''} onChange={(event) => updateVenueLocation('groomHome', 'name', event.target.value)} /></Field>
-            <Field label="Địa chỉ" wide><textarea value={data.venue.groomHome?.address || ''} onChange={(event) => updateVenueLocation('groomHome', 'address', event.target.value)} /></Field>
-            <Field label="URL Google Maps" wide><input value={data.venue.groomHome?.mapUrl || data.venue.groomHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('groomHome', 'mapUrl', event.target.value)} placeholder="Dán link Google Maps hoặc maps.app.goo.gl" /><small className="admin-field-hint">Chỉ cần nhập một lần. Hệ thống tự dùng cho bản đồ nhúng và nút chỉ đường.</small></Field>
-          </div></article>
-          <article><h3><span>02</span> Nhà cô dâu</h3><div className="admin-form-grid">
-            <Field label="Tên địa điểm" wide><input value={data.venue.brideHome?.name || ''} onChange={(event) => updateVenueLocation('brideHome', 'name', event.target.value)} /></Field>
-            <Field label="Địa chỉ" wide><textarea value={data.venue.brideHome?.address || ''} onChange={(event) => updateVenueLocation('brideHome', 'address', event.target.value)} /></Field>
-            <Field label="URL Google Maps" wide><input value={data.venue.brideHome?.mapUrl || data.venue.brideHome?.directionsUrl || ''} onChange={(event) => updateVenueLocation('brideHome', 'mapUrl', event.target.value)} placeholder="Dán link Google Maps hoặc maps.app.goo.gl" /><small className="admin-field-hint">Chỉ cần nhập một lần. Hệ thống tự dùng cho bản đồ nhúng và nút chỉ đường.</small></Field>
-          </div></article>
+          {['groom', 'bride'].map((side) => <WeddingEventEditor key={side} event={data.events[side]} onChange={(key, value) => updateEvent(side, key, value)} onDateChange={(value) => updateEventDate(side, value)} onVenueChange={(key, value) => updateEventVenue(side, key, value)} onScheduleChange={(updater) => updateEventSchedule(side, updater)} />)}
         </div>
       </Panel>
 
@@ -544,15 +606,6 @@ export default function AdminApp() {
         <button type="button" className="admin-add" onClick={() => updateRoot('gallery', [...data.gallery, { image_url: '', alt_text: '' }])}><Plus size={17} /> Thêm ảnh</button>
       </Panel>
 
-      <Panel id="schedule" eyebrow="Ngày trọng đại" title="Lịch trình ngày cưới" previewSection="timeline" onPreview={showPreviewSection}>
-        <div className="admin-repeat-list">{data.schedule.map((item, index) => <article className="admin-schedule-row" key={`${item.time_label}-${index}`}>
-          <Field label="Thời gian"><input type="time" value={String(item.time_label).slice(0, 5)} onChange={(event) => updateItem('schedule', index, 'time_label', event.target.value)} /></Field>
-          <Field label="Nội dung"><input value={item.title || ''} onChange={(event) => updateItem('schedule', index, 'title', event.target.value)} /></Field>
-          <Field label="Biểu tượng"><select value={item.icon || 'heart'} onChange={(event) => updateItem('schedule', index, 'icon', event.target.value)}><option value="heart">Trái tim</option><option value="camera">Máy ảnh</option><option value="glass">Nâng ly</option><option value="rings">Nhẫn cưới</option><option value="cake">Bánh cưới</option></select></Field>
-          <RowActions index={index} length={data.schedule.length} onMove={(itemIndex, direction) => moveItem('schedule', itemIndex, direction)} onRemove={(itemIndex) => removeItem('schedule', itemIndex)} />
-        </article>)}</div>
-        <button type="button" className="admin-add" onClick={() => updateRoot('schedule', [...data.schedule, { time_label: '18:00', title: '', icon: 'heart' }])}><Plus size={17} /> Thêm mốc thời gian</button>
-      </Panel>
 
       <Panel id="gift" eyebrow="Ngân hàng" title="Quà mừng" previewSection="gift" onPreview={showPreviewSection}>
         <div className="admin-gift-accounts">{[
@@ -596,16 +649,18 @@ export default function AdminApp() {
       </Panel>
 
       <Panel id="invitees" eyebrow="Cá nhân hóa lời mời" title="Link riêng cho từng khách mời">
-        <p className="admin-panel-description">Nhập tên khách để tạo đường link riêng. Khi mở link, khách sẽ thấy tên của mình trên màn hình mở thiệp.</p>
+        <p className="admin-panel-description">Chọn nhóm khi tạo link. Khách chỉ thấy nội dung nhà trai, nhà gái hoặc cả hai buổi theo nhóm đã chọn.</p>
         <form className="admin-invitee-create" onSubmit={createInvitee}>
           <Field label="Tên người được mời"><input value={newInviteeName} onChange={(event) => setNewInviteeName(event.target.value)} placeholder="Ví dụ: Anh Nguyễn Văn An và gia đình" maxLength={150} /></Field>
+          <Field label="Nhóm khách mời"><select value={newInviteeAudience} onChange={(event) => setNewInviteeAudience(event.target.value)}>{audienceOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
           <button type="submit" className="admin-primary" disabled={inviteeBusy === 'create' || !newInviteeName.trim()}><UserPlus size={17} />{inviteeBusy === 'create' ? 'Đang tạo...' : 'Tạo link mời'}</button>
         </form>
         <div className="admin-invitee-summary"><strong>{invitees.length}</strong><span>link khách mời đã tạo</span></div>
         <div className="admin-table-wrap admin-invitee-table"><table>
-          <thead><tr><th>Tên hiển thị</th><th>Đường link riêng</th><th>Lượt mở</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+          <thead><tr><th>Tên hiển thị</th><th>Nhóm</th><th>Đường link riêng</th><th>Lượt mở</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
           <tbody>{invitees.map((invitee) => <tr key={invitee.id}>
             <td><input className="admin-table-input" value={invitee.name} onChange={(event) => editInviteeName(invitee.id, event.target.value)} maxLength={150} /></td>
+            <td><select className="admin-table-input" value={invitee.audience || 'both'} onChange={(event) => editInviteeAudience(invitee.id, event.target.value)}>{audienceOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
             <td><div className="admin-link-field"><input value={inviteeLink(invitee.token)} readOnly onFocus={(event) => event.target.select()} /><button type="button" onClick={() => copyInviteeLink(invitee)} aria-label={`Sao chép link của ${invitee.name}`}>{copiedInvitee === invitee.id ? <Check size={15} /> : <Copy size={15} />}</button></div></td>
             <td><strong>{invitee.viewCount || 0}</strong><small>{invitee.lastOpenedAt ? `Lần cuối: ${new Date(invitee.lastOpenedAt).toLocaleString('vi-VN')}` : 'Chưa mở link'}</small></td>
             <td><label className="admin-invitee-status"><input type="checkbox" checked={invitee.isActive} onChange={(event) => saveInvitee(invitee, { isActive: event.target.checked })} disabled={inviteeBusy === invitee.id} /><span />{invitee.isActive ? 'Đang hoạt động' : 'Đã tắt'}</label></td>
