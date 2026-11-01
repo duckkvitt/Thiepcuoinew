@@ -527,6 +527,7 @@ export default function App() {
     .filter((side) => audience === 'both' || audience === side)
     .map((side) => allEvents[side])
     .filter(Boolean);
+  const venueEvents = ['groom', 'bride'].map((side) => allEvents[side]).filter(Boolean);
   const primaryEvent = visibleEvents[0] || allEvents.groom;
   const entryData = primaryEvent ? eventData(data, primaryEvent) : data;
 
@@ -554,7 +555,7 @@ export default function App() {
         <TimelineSection data={detail} />
       </div>;
     })}
-    <Venue data={entryData} events={visibleEvents} />
+    <Venue data={entryData} events={venueEvents} />
     <Gallery data={data} />
     <Guestbook data={data} wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
     <GiftSection data={data} onOpen={() => setModal('gift')} />
