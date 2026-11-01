@@ -283,10 +283,13 @@ function Reception({ data, onRsvp }) {
   </section>;
 }
 
-function Venue({ data, label = '' }) {
-  const locations = [{ key: 'event-venue', label: label || 'Địa điểm tổ chức', ...data.venue }];
+function Venue({ data, events = [] }) {
+  const locations = events.length
+    ? events.map((event) => ({ key: event.side, label: event.label, ...event.venue }))
+    : [{ key: 'event-venue', label: 'Địa điểm tổ chức', ...data.venue }];
+  const title = locations.length > 1 ? 'Địa điểm tư gia' : `Địa điểm ${locations[0].label.toLowerCase()}`;
   return <section id="venue" className="section venue-section typography-scope" style={typographyStyle(data.typography, 'venue')}>
-    <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title={label ? `Địa điểm ${label.toLowerCase()}` : 'Địa điểm tổ chức'} />
+    <SectionTitle eyebrow="HẸN GẶP QUÝ KHÁCH" title={title} />
     <div className="venue-grid">{locations.map((location) => {
       const mapUrl = location.mapUrl || location.directionsUrl || location.mapEmbedUrl;
       return <article className="location-card" key={location.key}>
@@ -542,18 +545,17 @@ export default function App() {
     <main className={!hasEntered ? 'invitation-behind-gate' : ''}>
     {isPreviewMode && <div className="preview-ribbon">Bản xem trước · Chưa lưu</div>}
     <Hero data={entryData} />
-    <Gallery data={data} />
     {visibleEvents.map((event) => {
       const detail = eventData(data, event);
-      const label = event.label;
       return <div key={event.side} className="wedding-event-content">
         {audience === 'both' && <div className="event-divider"><span>{event.label}</span></div>}
         <InvitationCard data={detail} />
         <Reception data={detail} onRsvp={() => setModal('rsvp')} />
-        <Venue data={detail} label={label} />
         <TimelineSection data={detail} />
       </div>;
     })}
+    <Venue data={entryData} events={visibleEvents} />
+    <Gallery data={data} />
     <Guestbook data={data} wishes={wishes} onSubmit={createWish} initialGuestName={invitee?.name} />
     <GiftSection data={data} onOpen={() => setModal('gift')} />
     {modal === 'rsvp' && <RsvpModal onClose={() => setModal(null)} onSubmit={invitationApi.createRsvp} initialGuestName={invitee?.name} />}
