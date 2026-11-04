@@ -303,8 +303,8 @@ main {
 .gift-bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .bank-account { padding: 12px; background: rgba(255,255,255,.5); border: 1px solid rgba(91,17,24,.11); border-radius: 16px; }
 .bank-account h3 { margin: 3px 0 12px; color: var(--wine); text-align: center; text-transform: uppercase; letter-spacing: .12em; font: 600 13px Georgia, serif; }
-.bank-qr { display: grid; place-items: center; height: 190px; margin-bottom: 11px; padding: 10px; background: #fff; border: 1px solid rgba(91,17,24,.12); border-radius: 12px; overflow: hidden; }
-.bank-qr img { width: 100%; height: 100%; object-fit: contain; }
+.bank-qr { display: grid; place-items: center; width: 100%; height: auto; aspect-ratio: 1 / 1; margin-bottom: 11px; padding: 14px; background: #fff; border: 1px solid rgba(91,17,24,.12); border-radius: 12px; overflow: hidden; }
+.bank-qr img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .bank-qr.empty { align-content: center; gap: 8px; color: rgba(91,17,24,.45); background: #f4eee6; font: 11px Georgia, serif; }
 .bank-qr.empty svg { width: 42px; height: 42px; }
 .bank-card { display: grid; grid-template-columns: 105px 1fr; gap: 10px 11px; padding: 18px; color: var(--cream); background: linear-gradient(145deg, #6c1720, #440a0f); border-radius: 13px; }

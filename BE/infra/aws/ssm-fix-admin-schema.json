@@ -1,0 +1,14 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Apply missing wedding admin database migration",
+  "Parameters": {
+    "commands": [
+      "set -Eeuo pipefail",
+      "cd /opt/wedding-app",
+      "runuser -u ec2-user -- /usr/bin/npm-22 run db:init",
+      "systemctl is-active wedding-app.service",
+      "curl --fail --silent http://127.0.0.1:8080/api/health"
+    ]
+  }
+}

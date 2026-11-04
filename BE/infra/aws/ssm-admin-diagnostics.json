@@ -1,0 +1,22 @@
+{
+  "DocumentName": "AWS-RunShellScript",
+  "InstanceIds": ["i-0010b131c3757b993"],
+  "Comment": "Diagnose wedding admin page loading issue",
+  "Parameters": {
+    "commands": [
+      "set -Eeuo pipefail",
+      "systemctl is-active wedding-app.service",
+      "curl --fail --silent http://127.0.0.1:8080/api/health",
+      "cd /opt/wedding-app",
+      "ADMIN_KEY=$(node -e \"require('dotenv').config(); process.stdout.write(process.env.ADMIN_API_KEY || '')\")",
+      "test -n \"$ADMIN_KEY\"",
+      "STATUS=$(curl --silent --output /tmp/admin-invitation.json --write-out '%{http_code}' --header \"x-api-key: $ADMIN_KEY\" http://127.0.0.1:8080/api/admin/invitations/hoang-long-bao-ngoc)",
+      "node -e \"const fs=require('fs');const data=JSON.parse(fs.readFileSync('/tmp/admin-invitation.json','utf8')); console.log(JSON.stringify({hasInvitation:Boolean(data.slug),hasGift:Boolean(data.gift),hasEvents:Boolean(data.events),galleryCount:Array.isArray(data.gallery)?data.gallery.length:null,scheduleCount:Array.isArray(data.schedule)?data.schedule.length:null}))\"",
+      "curl --fail --silent --output /tmp/admin-submissions.json --header \"x-api-key: $ADMIN_KEY\" http://127.0.0.1:8080/api/admin/invitations/hoang-long-bao-ngoc/submissions",
+      "curl --fail --silent --output /tmp/admin-invitees.json --header \"x-api-key: $ADMIN_KEY\" http://127.0.0.1:8080/api/admin/invitations/hoang-long-bao-ngoc/invitees",
+      "node -e \"const fs=require('fs');const submissions=JSON.parse(fs.readFileSync('/tmp/admin-submissions.json','utf8'));const invitees=JSON.parse(fs.readFileSync('/tmp/admin-invitees.json','utf8'));console.log(JSON.stringify({submissionsValid:Array.isArray(submissions.wishes)&&Array.isArray(submissions.rsvps),inviteesValid:Array.isArray(invitees),inviteeCount:Array.isArray(invitees)?invitees.length:null}))\"",
+      "journalctl -u wedding-app.service --since '5 minutes ago' --no-pager -n 100 | grep -E '(Error|error|Unhandled|TypeError|SyntaxError)' || true",
+      "rm -f /tmp/admin-invitation.json /tmp/admin-submissions.json /tmp/admin-invitees.json"
+    ]
+  }
+}

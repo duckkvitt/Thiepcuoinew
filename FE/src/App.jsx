@@ -10,13 +10,18 @@ import './styles.css';
 
 const pad = (value) => String(value).padStart(2, '0');
 const toLocalDate = (value) => new Date(`${String(value).slice(0, 10)}T00:00:00`);
+const VIETNAMESE_WEEKDAYS = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+const formatVietnameseWeekday = (value, uppercase = false) => {
+  const label = VIETNAMESE_WEEKDAYS[toLocalDate(value).getDay()];
+  return uppercase ? label.toLocaleUpperCase('vi-VN') : label;
+};
 const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'admin';
 const inviteToken = new URLSearchParams(window.location.search).get('invite') || '';
 const ENTRY_OPEN_DURATION_MS = 1850;
 const getHeartFallSeconds = (randomValue) => Number((50 + 20 * randomValue).toFixed(1));
 const formatWeddingDate = (value) => {
   const date = toLocalDate(value);
-  return `${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
+  return `${formatVietnameseWeekday(value)}, ${date.getDate()} tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
 };
 const eventData = (data, event) => ({
   ...data,
@@ -123,7 +128,7 @@ function Family({ family }) {
 function DateLockup({ data }) {
   const date = toLocalDate(data.weddingDate);
   return <div className="date-lockup">
-    <div><span>VÀO LÚC {data.ceremonyTime.slice(0, 5)}</span><span>THỨ BẢY</span></div>
+    <div><span>VÀO LÚC {data.ceremonyTime.slice(0, 5)}</span><span>{formatVietnameseWeekday(data.weddingDate, true)}</span></div>
     <div className="date-core"><b>{pad(date.getDate())}</b><i /><p><strong>THÁNG {pad(date.getMonth() + 1)}</strong><span>{date.getFullYear()}</span></p></div>
     <small>{data.lunarDate}</small>
   </div>;
@@ -271,7 +276,7 @@ function Reception({ data, onRsvp }) {
     <div className="burgundy-card reception-card">
       <SectionTitle title="Thông tin tiệc cưới" light />
       <h3>TIỆC CƯỚI SẼ DIỄN RA VÀO LÚC:</h3>
-      <div className="reception-time"><span>{data.receptionTime.slice(0, 5)}</span><span>THỨ BẢY</span></div>
+      <div className="reception-time"><span>{data.receptionTime.slice(0, 5)}</span><span>{formatVietnameseWeekday(data.weddingDate, true)}</span></div>
       <div className="date-core large"><b>{pad(date.getDate())}</b><i /><p><strong>THÁNG {pad(date.getMonth() + 1)}</strong><span>{date.getFullYear()}</span></p></div>
       <p className="lunar">{data.lunarDate}</p>
       <div className="service-times"><p><span>ĐÓN KHÁCH</span><b>{data.receptionGuestTime.slice(0, 5)}</b></p><p><span>KHAI TIỆC</span><b>{data.receptionTime.slice(0, 5)}</b></p></div>

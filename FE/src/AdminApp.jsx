@@ -62,10 +62,10 @@ const sections = [
   ['submissions', <MessageSquare size={18} />, 'Phản hồi']
 ];
 
-function Login({ onLogin }) {
+function Login({ onLogin, initialMessage = '' }) {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
-  const [state, setState] = useState({ loading: false, message: '' });
+  const [state, setState] = useState({ loading: false, message: initialMessage });
   const submit = async (event) => {
     event.preventDefault();
     setState({ loading: true, message: '' });
@@ -77,7 +77,7 @@ function Login({ onLogin }) {
   };
   return <main className="admin-login-shell">
     <form className="admin-login" onSubmit={submit}>
-      <div className="admin-mark">HL <span>&amp;</span> BN</div>
+      <div className="admin-mark">TA <span>&amp;</span> HY</div>
       <p className="admin-kicker">Wedding invitation</p>
       <h1>Trang quản trị</h1>
       <p>Đăng nhập để chỉnh nội dung thiệp và quản lý phản hồi của khách mời.</p>
@@ -175,19 +175,35 @@ export default function AdminApp() {
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    Promise.all([adminApi.getInvitation(token), adminApi.getSubmissions(token), adminApi.getInvitees(token)])
+    const timeout = new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error('Máy chủ phản hồi quá lâu. Vui lòng đăng nhập lại.')), 12000);
+    });
+    Promise.race([
+      Promise.all([adminApi.getInvitation(token), adminApi.getSubmissions(token), adminApi.getInvitees(token)]),
+      timeout
+    ])
       .then(([invitation, response, inviteeList]) => {
         setData(normalizeInvitationGift(invitation));
         setSubmissions(response);
         setInvitees(inviteeList);
+        setNotice('');
       })
-      .catch((error) => { if (error.status === 401) logout(); else setNotice(error.message); })
+      .catch((error) => {
+        sessionStorage.removeItem(tokenKey);
+        setData(null);
+        setInvitees([]);
+        setNotice(error.status === 401
+          ? 'Phiên quản trị đã hết hạn. Vui lòng đăng nhập lại.'
+          : (error.message || 'Không thể tải trang quản trị. Vui lòng đăng nhập lại.'));
+        setToken('');
+      })
       .finally(() => setLoading(false));
   }, [token]);
 
   const login = async (username, password) => {
     const response = await adminApi.login(username, password);
     sessionStorage.setItem(tokenKey, response.token);
+    setNotice('');
     setToken(response.token);
   };
 
@@ -474,12 +490,12 @@ export default function AdminApp() {
     };
   }, [submissions]);
 
-  if (!token) return <Login onLogin={login} />;
+  if (!token) return <Login onLogin={login} initialMessage={notice} />;
   if (loading || !data) return <main className="admin-loading"><div className="admin-spinner" /><p>Đang tải trang quản trị...</p></main>;
 
   return <div className={`admin-shell${previewOpen ? ' preview-open' : ''}`}>
     <aside className="admin-sidebar">
-      <a className="admin-brand" href="#overview"><strong>HL <i>&amp;</i> BN</strong><span>Invitation studio</span></a>
+      <a className="admin-brand" href="#overview"><strong>TA <i>&amp;</i> HY</strong><span>Invitation studio</span></a>
       <nav>{sections.map(([id, icon, label]) => <a key={id} href={`#${id}`}>{icon}<span>{label}</span></a>)}</nav>
       <button onClick={logout}><LogOut size={18} /> Đăng xuất</button>
     </aside>

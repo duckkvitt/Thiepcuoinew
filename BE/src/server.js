@@ -588,7 +588,7 @@ app.post('/api/invitations/:slug/rsvps', publicWriteLimiter, async (req, res, ne
 app.get('/moi-cuoi', (_req, res) => {
   const websiteUrl = 'https://dby0plywuaxuk.cloudfront.net';
   const shareUrl = `${websiteUrl}/moi-cuoi`;
-  const imageUrl = `${websiteUrl}/images/wedding-gallery.png`;
+  const imageUrl = `${websiteUrl}/images/social-preview.png`;
   res.set('Cache-Control', 'no-store');
   res.type('html').send(`<!doctype html>
 <html lang="vi">
@@ -606,8 +606,8 @@ app.get('/moi-cuoi', (_req, res) => {
     <meta property="og:image" content="${imageUrl}">
     <meta property="og:image:secure_url" content="${imageUrl}">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1536">
-    <meta property="og:image:height" content="1024">
+    <meta property="og:image:width" content="984">
+    <meta property="og:image:height" content="535">
     <meta property="og:image:alt" content="Tiến Anh và Hải Yến">
     <meta name="twitter:card" content="summary_large_image">
     <meta http-equiv="refresh" content="0;url=/">
