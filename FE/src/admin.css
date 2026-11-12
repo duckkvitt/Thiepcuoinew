@@ -150,7 +150,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .admin-invitee-table th:nth-child(2) { width: 31%; }
 .admin-table-input, .admin-link-field input { width: 100%; min-height: 38px; padding: 8px 10px; color: #35171a; background: #fff; border: 1px solid #ded3c7; border-radius: 7px; outline: 0; font-size: 10px; }
 .admin-table-input:focus, .admin-link-field input:focus { border-color: #9b5a60; box-shadow: 0 0 0 3px rgba(100,20,28,.08); }
-.admin-link-field { display: grid; grid-template-columns: minmax(0, 1fr) 38px; gap: 5px; }
+.admin-link-field { display: grid; grid-template-columns: minmax(0, 1fr) repeat(2, 38px); gap: 5px; }
 .admin-link-field button { display: grid; place-items: center; color: var(--admin-wine); background: #f7ebeb; border: 1px solid #e4cdd0; border-radius: 7px; cursor: pointer; }
 .admin-invitee-status { display: flex; align-items: center; gap: 7px; white-space: nowrap; cursor: pointer; font-size: 9px; font-weight: 700; }
 .admin-invitee-status input { position: absolute; opacity: 0; pointer-events: none; }

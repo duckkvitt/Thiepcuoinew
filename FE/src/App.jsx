@@ -16,7 +16,8 @@ const formatVietnameseWeekday = (value, uppercase = false) => {
   return uppercase ? label.toLocaleUpperCase('vi-VN') : label;
 };
 const isPreviewMode = new URLSearchParams(window.location.search).get('preview') === 'admin';
-const inviteToken = new URLSearchParams(window.location.search).get('invite') || '';
+const invitePathToken = window.location.pathname.match(/^\/moi-cuoi\/([a-f0-9]{32})\/?$/i)?.[1] || '';
+const inviteToken = new URLSearchParams(window.location.search).get('invite') || invitePathToken;
 const ENTRY_OPEN_DURATION_MS = 1850;
 const getHeartFallSeconds = (randomValue) => Number((50 + 20 * randomValue).toFixed(1));
 const formatWeddingDate = (value) => {

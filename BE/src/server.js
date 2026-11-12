@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 import { ZodError } from 'zod';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool, getInvitationBySlug } from './db.js';
@@ -16,6 +16,7 @@ import { normalizeTypographySettings } from './typography.js';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const port = Number(process.env.PORT || 8080);
 const adminPassword = String(process.env.ADMIN_PASSWORD || '');
 const adminSecret = String(process.env.ADMIN_SESSION_SECRET || adminPassword);
@@ -25,6 +26,7 @@ const adminSessionTtlSeconds = Number.isFinite(configuredTtl) && configuredTtl >
 const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const uploadDirectory = resolve(projectDirectory, 'uploads');
 const publicDirectory = resolve(projectDirectory, 'public');
+const websiteUrl = 'https://dby0plywuaxuk.cloudfront.net';
 
 const toBase64Url = (value) => Buffer.from(value).toString('base64url');
 const sign = (value) => createHmac('sha256', adminSecret).update(value).digest('base64url');
@@ -56,6 +58,34 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
+const escapeHtmlAttribute = (value) => String(value ?? '')
+  .replaceAll('&', '&amp;')
+  .replaceAll('"', '&quot;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;');
+const absoluteWebsiteUrl = (value, fallbackPath) => {
+  try {
+    const url = new URL(clean(value, 2000) || fallbackPath, `${websiteUrl}/`);
+    if (!['http:', 'https:'].includes(url.protocol)) return new URL(fallbackPath, `${websiteUrl}/`).toString();
+    if (url.hostname === new URL(websiteUrl).hostname) url.protocol = 'https:';
+    return url.toString();
+  } catch {
+    return new URL(fallbackPath, `${websiteUrl}/`).toString();
+  }
+};
+const versionedUrl = (value, version) => {
+  const url = new URL(value);
+  if (version) url.searchParams.set('v', String(version));
+  return url.toString();
+};
+const imageContentType = (value) => {
+  const extension = new URL(value).pathname.split('.').pop()?.toLowerCase();
+  return ({ jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' })[extension] || '';
+};
+const replaceMetaContent = (html, attribute, key, value) => html.replace(
+  new RegExp(`<meta\\s+${attribute}="${key}"\\s+content="[^"]*"\\s*\\/?>`, 'i'),
+  `<meta ${attribute}="${key}" content="${escapeHtmlAttribute(value)}" />`
+);
 const normalizeTime = (value) => {
   const time = clean(value, 8);
   return /^\d{2}:\d{2}(:\d{2})?$/.test(time) ? (time.length === 5 ? `${time}:00` : time) : null;
@@ -586,7 +616,6 @@ app.post('/api/invitations/:slug/rsvps', publicWriteLimiter, async (req, res, ne
 });
 
 app.get('/moi-cuoi', (_req, res) => {
-  const websiteUrl = 'https://dby0plywuaxuk.cloudfront.net';
   const shareUrl = `${websiteUrl}/moi-cuoi`;
   const imageUrl = `${websiteUrl}/images/social-preview.png`;
   res.set('Cache-Control', 'no-store');
@@ -614,6 +643,63 @@ app.get('/moi-cuoi', (_req, res) => {
   </head>
   <body><a href="/">Mở thiệp cưới</a><script>location.replace('/');</script></body>
 </html>`);
+});
+
+app.get('/moi-cuoi/:token', async (req, res, next) => {
+  try {
+    const token = clean(req.params.token, 64);
+    if (!/^[a-f0-9]{32}$/i.test(token)) return res.status(404).send('Link mời không hợp lệ.');
+
+    const [[invitee]] = await pool.query(
+      `SELECT guests.id,
+              invitation.groom_name AS groomName,
+              invitation.bride_name AS brideName,
+              invitation.announcement_text AS announcementText,
+              invitation.hero_image AS heroImage,
+              UNIX_TIMESTAMP(invitation.updated_at) AS previewVersion
+       FROM invitees guests
+       JOIN invitations invitation ON invitation.id = guests.invitation_id
+       WHERE guests.token = ? AND guests.is_active = TRUE AND invitation.is_published = TRUE
+       LIMIT 1`,
+      [token]
+    );
+    if (!invitee) return res.status(404).send('Link mời không tồn tại hoặc đã bị tắt.');
+
+    const shareUrl = `${websiteUrl}/moi-cuoi/${encodeURIComponent(token)}`;
+    const title = `${invitee.groomName} & ${invitee.brideName} | Thiệp cưới`;
+    const description = clean(invitee.announcementText, 300)
+      || `${invitee.groomName} & ${invitee.brideName} trân trọng kính mời bạn đến chung vui trong ngày cưới.`;
+    const imageUrl = versionedUrl(
+      absoluteWebsiteUrl(invitee.heroImage, '/images/social-preview.png'),
+      invitee.previewVersion
+    );
+    const imageType = imageContentType(imageUrl);
+    const indexHtml = await readFile(resolve(publicDirectory, 'index.html'), 'utf8');
+    let personalizedHtml = indexHtml
+      .replace(/<link rel="canonical" href="[^"]+"\s*\/>/, `<link rel="canonical" href="${shareUrl}" />`)
+      .replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtmlAttribute(title)}</title>`);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:url', shareUrl);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:title', title);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:description', description);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:image', imageUrl);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:image:secure_url', imageUrl);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'property', 'og:image:alt', `Ảnh cưới ${invitee.groomName} và ${invitee.brideName}`);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'name', 'description', description);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'name', 'twitter:title', title);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'name', 'twitter:description', description);
+    personalizedHtml = replaceMetaContent(personalizedHtml, 'name', 'twitter:image', imageUrl);
+    personalizedHtml = imageType
+      ? replaceMetaContent(personalizedHtml, 'property', 'og:image:type', imageType)
+      : personalizedHtml.replace(/\s*<meta property="og:image:type"[^>]*>/i, '');
+    personalizedHtml = personalizedHtml
+      .replace(/\s*<meta property="og:image:width"[^>]*>/i, '')
+      .replace(/\s*<meta property="og:image:height"[^>]*>/i, '');
+
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    res.type('html').send(personalizedHtml);
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.use(express.static(publicDirectory, { index: false, maxAge: '1h' }));

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Check, ChevronRight, Copy, Eye, EyeOff,
   Expand, Gift, Image, LayoutDashboard, Link2, LocateFixed, LogOut, MapPin,
-  MessageSquare, MonitorSmartphone, Music2, Plus, Save, Settings, Shrink,
+  MessageSquare, MonitorSmartphone, Music2, Plus, Save, Settings, Share2, Shrink,
   Trash2, Type, UploadCloud, UserPlus, Users, X
 } from 'lucide-react';
 import { adminApi } from './api.js';
@@ -409,8 +409,7 @@ export default function AdminApp() {
   };
 
   const inviteeLink = (inviteeToken) => {
-    const url = new URL(import.meta.env.BASE_URL, window.location.origin);
-    url.searchParams.set('invite', inviteeToken);
+    const url = new URL(`/moi-cuoi/${encodeURIComponent(inviteeToken)}`, window.location.origin);
     return url.toString();
   };
 
@@ -463,6 +462,21 @@ export default function AdminApp() {
       window.setTimeout(() => setCopiedInvitee(null), 1800);
     } catch {
       setNotice('Không thể sao chép tự động. Hãy chọn và sao chép đường link thủ công.');
+    }
+  };
+
+  const shareInviteeLink = async (invitee) => {
+    const url = inviteeLink(invitee.token);
+    if (!navigator.share) return copyInviteeLink(invitee);
+    try {
+      await navigator.share({
+        title: 'Tiến Anh & Hải Yến | Thiệp cưới',
+        text: `Trân trọng kính mời ${invitee.name} đến chung vui trong ngày cưới của chúng tôi.`,
+        url
+      });
+      setNotice(`Đã mở chia sẻ link mời của ${invitee.name}.`);
+    } catch (error) {
+      if (error?.name !== 'AbortError') setNotice('Không thể mở chia sẻ. Hãy dùng nút sao chép link bên cạnh.');
     }
   };
 
@@ -677,7 +691,7 @@ export default function AdminApp() {
           <tbody>{invitees.map((invitee) => <tr key={invitee.id}>
             <td><input className="admin-table-input" value={invitee.name} onChange={(event) => editInviteeName(invitee.id, event.target.value)} maxLength={150} /></td>
             <td><select className="admin-table-input" value={invitee.audience || 'both'} onChange={(event) => editInviteeAudience(invitee.id, event.target.value)}>{audienceOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td>
-            <td><div className="admin-link-field"><input value={inviteeLink(invitee.token)} readOnly onFocus={(event) => event.target.select()} /><button type="button" onClick={() => copyInviteeLink(invitee)} aria-label={`Sao chép link của ${invitee.name}`}>{copiedInvitee === invitee.id ? <Check size={15} /> : <Copy size={15} />}</button></div></td>
+            <td><div className="admin-link-field"><input value={inviteeLink(invitee.token)} readOnly onFocus={(event) => event.target.select()} /><button type="button" onClick={() => copyInviteeLink(invitee)} aria-label={`Sao chép link của ${invitee.name}`} title="Sao chép link">{copiedInvitee === invitee.id ? <Check size={15} /> : <Copy size={15} />}</button><button type="button" onClick={() => shareInviteeLink(invitee)} aria-label={`Chia sẻ link của ${invitee.name}`} title="Chia sẻ link"><Share2 size={15} /></button></div></td>
             <td><strong>{invitee.viewCount || 0}</strong><small>{invitee.lastOpenedAt ? `Lần cuối: ${new Date(invitee.lastOpenedAt).toLocaleString('vi-VN')}` : 'Chưa mở link'}</small></td>
             <td><label className="admin-invitee-status"><input type="checkbox" checked={invitee.isActive} onChange={(event) => saveInvitee(invitee, { isActive: event.target.checked })} disabled={inviteeBusy === invitee.id} /><span />{invitee.isActive ? 'Đang hoạt động' : 'Đã tắt'}</label></td>
             <td><div className="admin-invitee-actions"><button type="button" onClick={() => saveInvitee(invitee)} disabled={inviteeBusy === invitee.id || !invitee.name.trim()}><Save size={15} /> Lưu tên</button><button type="button" className="danger" onClick={() => deleteInvitee(invitee)} disabled={inviteeBusy === invitee.id}><Trash2 size={15} /> Xóa</button></div></td>
